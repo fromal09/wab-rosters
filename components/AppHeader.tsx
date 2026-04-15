@@ -44,6 +44,11 @@ export default function AppHeader() {
               onMouseLeave={e => (e.currentTarget.style.background='transparent')}>
               League
             </Link>
+            <Link href="/history" style={{ padding: '5px 12px', borderRadius: 6, color: '#374151', textDecoration: 'none', fontSize: '0.83rem', fontWeight: 500 }}
+              onMouseEnter={e => (e.currentTarget.style.background='#f4f5f7')}
+              onMouseLeave={e => (e.currentTarget.style.background='transparent')}>
+              History
+            </Link>
             <Link href="/admin" style={{ padding: '5px 12px', borderRadius: 6, color: '#374151', textDecoration: 'none', fontSize: '0.83rem', fontWeight: 500 }}
               onMouseEnter={e => (e.currentTarget.style.background='#f4f5f7')}
               onMouseLeave={e => (e.currentTarget.style.background='transparent')}>
