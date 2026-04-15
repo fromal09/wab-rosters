@@ -38,11 +38,23 @@ function TransactionsPane({ slug, year }: { slug: string; year: number }) {
 
   useEffect(() => {
     setLoading(true)
-    fetch(`/api/transactions?manager=${slug}&year=${year}&page=${page}`)
+    setPage(0)
+    fetch(`/api/transactions?manager=${slug}&year=${year}&page=0`)
       .then(r => r.json())
-      .then(d => { setTxns(d.transactions ?? []); setTotal(d.total ?? 0) })
+      .then(d => {
+        const BOTTOM_TYPES = new Set(['keeper', 'qualifying_offer'])
+        const sorted = [...(d.transactions ?? [])].sort((a: Txn, b: Txn) => {
+          const aBot = BOTTOM_TYPES.has(a.type) ? 1 : 0
+          const bBot = BOTTOM_TYPES.has(b.type) ? 1 : 0
+          if (aBot !== bBot) return aBot - bBot
+          // within each group keep reverse-chron
+          return 0
+        })
+        setTxns(sorted)
+        setTotal(d.total ?? 0)
+      })
       .finally(() => setLoading(false))
-  }, [slug, year, page])
+  }, [slug, year])
 
   if (loading) return <div style={{ padding: 24, textAlign: 'center', color: '#9ca3af' }}>Loading…</div>
   if (txns.length === 0) return <div style={{ padding: 24, textAlign: 'center', color: '#9ca3af' }}>No transactions recorded.</div>
@@ -258,7 +270,7 @@ export default function TeamPage() {
           <RosterSection title={`Major League (${mlb.length})`} players={mlb} accentColor="#15803d" defaultOpen onPlayerClick={setSelectedPlayer} />
           <RosterSection title={`Minor League (${milb.length})`} players={milb} accentColor="#1d4ed8" defaultOpen onPlayerClick={setSelectedPlayer} />
           <RosterSection title={`Injured List (${il.length})`} players={il} accentColor="#d97706" defaultOpen onPlayerClick={setSelectedPlayer} />
-          <RosterSection title={`Dropped (${dropped.length})`} players={dropped} accentColor="#dc2626" defaultOpen={false} onPlayerClick={setSelectedPlayer} />
+          <RosterSection title={`Dropped — $${deadMoney} dead cap (${dropped.length})`} players={dropped} accentColor="#dc2626" defaultOpen onPlayerClick={setSelectedPlayer} />
         </div>
       )}
 

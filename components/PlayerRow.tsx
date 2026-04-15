@@ -22,10 +22,10 @@ export default function PlayerRow({ name, serviceYear, salary, slotType, isFranc
       {/* Service year color stripe */}
       <td style={{ padding: 0, width: 3, background: svcBg }} />
 
-      <td style={{ padding: '5px 10px 5px 8px' }}>
+      <td style={{ padding: '3px 8px 3px 6px' }}>
         <span className={isFranchisePlayer ? 'franchise-player' : ''} style={{
           color: isDropped ? '#9ca3af' : '#111827',
-          fontSize: '0.84rem',
+          fontSize: '0.83rem',
           display: 'flex', alignItems: 'center', gap: 5,
           textDecoration: isDropped ? 'line-through' : 'none',
           textDecorationColor: '#d1d5db',
@@ -35,20 +35,20 @@ export default function PlayerRow({ name, serviceYear, salary, slotType, isFranc
         </span>
       </td>
 
-      <td style={{ padding: '5px 8px', textAlign: 'center', width: 40 }}>
+      <td style={{ padding: '3px 6px', textAlign: 'center', width: 38 }}>
         <ServiceYearBadge year={serviceYear} />
       </td>
 
-      <td style={{ padding: '5px 10px', textAlign: 'right', width: 56, fontVariantNumeric: 'tabular-nums' }}>
-        <span style={{ fontSize: '0.83rem', fontWeight: 600, color: isDropped ? '#9ca3af' : '#374151' }}>
+      <td style={{ padding: '3px 8px', textAlign: 'right', width: 50, fontVariantNumeric: 'tabular-nums' }}>
+        <span style={{ fontSize: '0.82rem', fontWeight: 600, color: isDropped ? '#9ca3af' : '#374151' }}>
           ${isDropped ? (deadMoney ?? Math.ceil(salary / 2)) : salary}
         </span>
       </td>
 
-      <td style={{ padding: '5px 10px', textAlign: 'right', width: 56, fontVariantNumeric: 'tabular-nums' }}>
+      <td style={{ padding: '3px 8px', textAlign: 'right', width: 50, fontVariantNumeric: 'tabular-nums' }}>
         {isDropped
-          ? <span style={{ fontSize: '0.65rem', fontWeight: 700, color: '#dc2626', letterSpacing: '0.03em' }}>DEAD</span>
-          : <span style={{ fontSize: '0.83rem', color: '#9ca3af' }}>${keeperPrice}</span>
+          ? <span style={{ fontSize: '0.63rem', fontWeight: 700, color: '#dc2626', letterSpacing: '0.03em' }}>DEAD</span>
+          : <span style={{ fontSize: '0.82rem', color: '#9ca3af' }}>${keeperPrice}</span>
         }
       </td>
     </tr>

@@ -164,18 +164,18 @@ export default function LeagueClient({ teams, year }: { teams: TeamSummary[]; ye
 
                 {!rdata?.loading && rdata && (
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 0 }}>
-                    {/* MLB */}
                     <div style={{ borderRight: '1px solid #f0f2f5' }}>
                       <RosterSection title={`MLB (${mlb.length})`} players={mlb} accentColor="#15803d" defaultOpen onPlayerClick={setSelectedPlayer} />
                     </div>
-                    {/* MiLB + IL */}
                     <div style={{ borderRight: '1px solid #f0f2f5' }}>
                       <RosterSection title={`MiLB (${milb.length})`} players={milb} accentColor="#1d4ed8" defaultOpen onPlayerClick={setSelectedPlayer} />
                       <RosterSection title={`IL (${il.length})`} players={il} accentColor="#d97706" defaultOpen onPlayerClick={setSelectedPlayer} />
                     </div>
-                    {/* Dropped */}
                     <div>
-                      <RosterSection title={`Dropped (${dropped.length})`} players={dropped} accentColor="#dc2626" defaultOpen={false} onPlayerClick={setSelectedPlayer} />
+                      <RosterSection
+                        title={`Dropped — $${dropped.reduce((a,p) => a + (p.dead_money ?? Math.ceil(p.salary/2)), 0)} dead (${dropped.length})`}
+                        players={dropped} accentColor="#dc2626" defaultOpen onPlayerClick={setSelectedPlayer}
+                      />
                     </div>
                   </div>
                 )}

@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import { MANAGERS, CURRENT_YEAR } from '@/lib/constants'
 
-type Tab = 'trade' | 'add-drop' | 'budget' | 'il' | 'salary'
+type Tab = 'trade' | 'add-drop' | 'budget' | 'il' | 'salary' | 'franchise'
 
 interface Manager { name: string; slug: string }
 
@@ -362,6 +362,52 @@ function SalaryTab() {
 }
 
 
+function FranchiseTab() {
+  const [manager, setManager] = useState('')
+  const [player, setPlayer] = useState('')
+  const [value, setValue] = useState(true)
+  const [loading, setLoading] = useState(false)
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
+
+  async function submit() {
+    if (!manager || !player) return setMsg({ ok: false, text: 'Fill in all fields' })
+    setLoading(true); setMsg(null)
+    try {
+      const res = await fetch('/api/admin', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'set_franchise', managerSlug: manager, playerName: player, value }),
+      })
+      const json = await res.json()
+      setMsg(json.ok ? { ok: true, text: `${player} → franchise ${value ? 'ON ★' : 'OFF'}` } : { ok: false, text: json.error })
+      if (json.ok) setPlayer('')
+    } finally { setLoading(false) }
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <p style={{ margin: 0, fontSize: '0.83rem', color: '#6b7280' }}>
+        Grant or remove franchise status (italic serif + ★). Applies across all years on that manager&apos;s roster.
+      </p>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+        <ManagerSelect label="Manager" value={manager} onChange={setManager} />
+        <Input label="Player Name" value={player} onChange={setPlayer} placeholder="Exact name…" />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <label style={{ fontSize: '0.72rem', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Action</label>
+          <select value={value ? 'true' : 'false'} onChange={e => setValue(e.target.value === 'true')}
+            style={{ background: '#f4f5f7', border: '1px solid #e2e6eb', borderRadius: 6, color: '#111827', padding: '8px 12px', fontSize: '0.88rem', outline: 'none' }}>
+            <option value="true">★ Grant franchise status</option>
+            <option value="false">Remove franchise status</option>
+          </select>
+        </div>
+      </div>
+      <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+        <ActionButton label="Apply" onClick={submit} loading={loading} color="#1d4ed8" />
+        <StatusMsg msg={msg} />
+      </div>
+    </div>
+  )
+}
+
 function LoginScreen({ onLogin }: { onLogin: () => void }) {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -428,6 +474,7 @@ export default function AdminPage() {
     { id: 'budget', label: '$ Budget' },
     { id: 'il', label: '🏥 IL Move' },
     { id: 'salary', label: '✏️ Salary' },
+    { id: 'franchise', label: '★ Franchise' },
   ]
 
   return (
@@ -477,6 +524,7 @@ export default function AdminPage() {
         {tab === 'budget' && <BudgetTab />}
         {tab === 'il' && <ILTab />}
         {tab === 'salary' && <SalaryTab />}
+        {tab === 'franchise' && <FranchiseTab />}
       </div>
     </div>
   )

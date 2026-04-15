@@ -62,9 +62,9 @@ export default function RosterSection({ title, players, accentColor = '#1d4ed8',
     <div>
       <button onClick={() => setOpen(o => !o)} style={{
         display: 'flex', alignItems: 'center', width: '100%',
-        padding: '6px 12px', background: '#f8f9fb',
+        padding: '5px 10px', background: '#f8f9fb',
         border: 'none', borderTop: '1px solid #e2e6eb',
-        cursor: 'pointer', gap: 8, textAlign: 'left',
+        cursor: 'pointer', gap: 6, textAlign: 'left',
       }}>
         <span style={{ width: 3, height: 12, background: accentColor, borderRadius: 2, flexShrink: 0 }} />
         <span style={{ fontSize: '0.67rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#6b7280', flex: 1 }}>
@@ -84,13 +84,13 @@ export default function RosterSection({ title, players, accentColor = '#1d4ed8',
               <th className={showSort ? 'sortable' : ''} onClick={showSort ? () => handleSort('name') : undefined}>
                 Player <SortIcon k="name" />
               </th>
-              <th className={showSort ? 'sortable' : ''} style={{ textAlign: 'center', width: 40 }} onClick={showSort ? () => handleSort('service_year') : undefined}>
+              <th className={showSort ? 'sortable' : ''} style={{ textAlign: 'center', width: 38 }} onClick={showSort ? () => handleSort('service_year') : undefined}>
                 Yr <SortIcon k="service_year" />
               </th>
-              <th className={showSort ? 'sortable' : ''} style={{ textAlign: 'right', width: 56 }} onClick={showSort ? () => handleSort('salary') : undefined}>
-                Salary <SortIcon k="salary" />
+              <th className={showSort ? 'sortable' : ''} style={{ textAlign: 'right', width: 50 }} onClick={showSort ? () => handleSort('salary') : undefined}>
+                $ <SortIcon k="salary" />
               </th>
-              <th className={showSort ? 'sortable' : ''} style={{ textAlign: 'right', width: 56 }} onClick={showSort ? () => handleSort('keeper') : undefined}>
+              <th className={showSort ? 'sortable' : ''} style={{ textAlign: 'right', width: 50 }} onClick={showSort ? () => handleSort('keeper') : undefined}>
                 KP <SortIcon k="keeper" />
               </th>
             </tr>

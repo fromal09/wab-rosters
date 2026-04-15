@@ -1,8 +1,20 @@
 import { query } from './db'
 import { CURRENT_YEAR } from './constants'
 
+// Managers currently active in the league
+const ACTIVE_MANAGER_SLUGS = new Set([
+  'adam-fromal','arjun-baradwaj','bretton-mcilrath','chris-glazier',
+  'eric-fleury','jacob-newcomer','michael-tumey','robert-ray',
+  'shashank-bharadwaj','shorty-hoffman',
+])
+
 export async function getAllManagers() {
   return query`SELECT id, name, slug FROM managers ORDER BY name`
+}
+
+export async function getActiveManagers() {
+  const all = await query`SELECT id, name, slug FROM managers ORDER BY name`
+  return all.filter(m => ACTIVE_MANAGER_SLUGS.has(m.slug as string))
 }
 
 export async function getManagerBySlug(slug: string) {
@@ -33,7 +45,15 @@ export async function getBudgetForManager(managerId: string, year = CURRENT_YEAR
 }
 
 export async function getAllTeamSummaries(year = CURRENT_YEAR) {
-  const managers = await query`SELECT id, name, slug FROM managers ORDER BY name`
+  const managers = await query`
+    SELECT id, name, slug FROM managers
+    WHERE slug IN (
+      'adam-fromal','arjun-baradwaj','bretton-mcilrath','chris-glazier',
+      'eric-fleury','jacob-newcomer','michael-tumey','robert-ray',
+      'shashank-bharadwaj','shorty-hoffman'
+    )
+    ORDER BY name
+  `
 
   const summaries = await query`
     SELECT

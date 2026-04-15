@@ -116,5 +116,19 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true })
   }
 
+  // ── Toggle franchise player ────────────────────────────────────────────────
+  if (action === 'set_franchise') {
+    const { managerSlug, playerName, value } = body
+    const managerId = await getManagerId(sql, managerSlug)
+    if (!managerId) return NextResponse.json({ error: 'Manager not found' }, { status: 404 })
+    const playerId = await getOrCreatePlayer(sql, playerName)
+    if (!playerId) return NextResponse.json({ error: 'Player not found' }, { status: 404 })
+    await sql`
+      UPDATE roster_slots SET is_franchise_player = ${value === true}
+      WHERE player_id = ${playerId} AND manager_id = ${managerId}
+    `
+    return NextResponse.json({ ok: true })
+  }
+
   return NextResponse.json({ error: 'Unknown action' }, { status: 400 })
 }
