@@ -3,61 +3,87 @@
 @tailwind utilities;
 
 :root {
-  --bg: #f4f5f7;
+  --bg: #f0f2f5;
   --bg-card: #ffffff;
-  --bg-card-hover: #f8f9fb;
-  --bg-section: #f0f2f5;
-  --bg-header: #ffffff;
-  --border: #e2e6eb;
-  --border-strong: #c8cdd5;
-  --text-primary: #111827;
+  --bg-section: #f6f7f9;
+  --border: #e4e7ec;
+  --border-strong: #c9cdd6;
+  --text-primary: #0f1117;
   --text-secondary: #374151;
   --text-muted: #6b7280;
   --text-faint: #9ca3af;
-  --accent: #1d4ed8;
-  --accent-light: #eff6ff;
-  --accent-hover: #1e40af;
-  --green: #15803d;
+  --accent: #1a56db;
+  --accent-light: #ebf0fd;
+  --green: #166534;
   --green-bg: #f0fdf4;
-  --red: #dc2626;
+  --red: #b91c1c;
   --red-bg: #fef2f2;
-  --yellow: #d97706;
-  --yellow-bg: #fffbeb;
-  --shadow-sm: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
-  --shadow-md: 0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
-  --shadow-lg: 0 12px 32px rgba(0,0,0,0.1), 0 4px 8px rgba(0,0,0,0.06);
+  --yellow: #b45309;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.04);
+  --r: 8px;
 }
 
-* { box-sizing: border-box; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
   background: var(--bg);
   color: var(--text-primary);
-  font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', system-ui, sans-serif;
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
+  font-size: 14px;
+  line-height: 1.5;
 }
 
-/* Franchise player — italic serif */
+/* ── Service year tiers ─────────────────────────────────────────────────────── */
+/* Colors from the official WAB Legend tab, slightly saturated */
+:root {
+  --svc-0:  #d4dde2;  /* pre-service — gray-blue */
+  --svc-1:  #c4d8e2;  /* yr 1 — steel blue */
+  --svc-2:  #c8dfac;  /* yr 2 — sage green */
+  --svc-3:  #d8e87c;  /* yr 3 — yellow-green */
+  --svc-4:  #e8f050;  /* yr 4 — bright yellow-green */
+  --svc-5:  #f4f828;  /* yr 5 — yellow */
+  --svc-6:  #ffff00;  /* yr 6 — pure yellow */
+  --svc-7:  #ccff20;  /* yr 7 — yellow-lime */
+  --svc-8:  #88ff44;  /* yr 8 — lime */
+  --svc-9:  #44ff88;  /* yr 9 — mint green */
+  --svc-10: #22ffcc;  /* yr 10 — teal */
+  --svc-11: #00ffff;  /* yr 11+ — cyan */
+}
+
+/* Franchise player */
 .franchise-player {
   font-style: italic !important;
   font-weight: 700 !important;
   font-family: Georgia, 'Times New Roman', serif !important;
-  letter-spacing: 0.01em;
 }
 
-/* Roster table */
+/* ── Cards ──────────────────────────────────────────────────────────────────── */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  box-shadow: var(--shadow-sm);
+}
+
+.team-card:hover {
+  border-color: var(--accent) !important;
+  box-shadow: var(--shadow-md) !important;
+}
+
+/* ── Roster table ────────────────────────────────────────────────────────────── */
 .roster-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.84rem;
+  font-size: 0.8rem;
 }
 .roster-table th {
-  text-align: left;
-  padding: 6px 10px;
+  padding: 5px 8px;
   background: var(--bg-section);
-  color: var(--text-muted);
-  font-size: 0.68rem;
+  color: var(--text-faint);
+  font-size: 0.62rem;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   font-weight: 600;
@@ -65,105 +91,56 @@ body {
   position: sticky;
   top: 0;
   z-index: 1;
-  user-select: none;
+  white-space: nowrap;
 }
-.roster-table th.sortable {
-  cursor: pointer;
-}
-.roster-table th.sortable:hover {
-  color: var(--accent);
-  background: #eef2f8;
-}
+.roster-table th.sortable { cursor: pointer; user-select: none; }
+.roster-table th.sortable:hover { color: var(--accent); background: #eef1f9; }
 .roster-table td {
-  padding: 5px 10px;
-  border-bottom: 1px solid #f0f2f5;
+  padding: 3px 8px;
+  border-bottom: 1px solid rgba(228,231,236,0.6);
   vertical-align: middle;
 }
-.roster-table tr:hover td {
-  background: #f8f9fb;
-}
+.roster-table tr:hover td { filter: brightness(0.97); }
 
-/* Cards */
-.card {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  box-shadow: var(--shadow-sm);
-}
-
-/* Team card hover */
-.team-card:hover {
-  border-color: var(--accent) !important;
-  box-shadow: var(--shadow-md) !important;
-}
-
-/* Section headers */
-.section-header {
-  padding: 7px 12px;
-  background: var(--bg-section);
-  font-size: 0.68rem;
+/* ── Tier dividers ───────────────────────────────────────────────────────────── */
+.tier-divider {
+  font-size: 0.58rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--text-muted);
-  border-top: 1px solid var(--border);
+  letter-spacing: 0.1em;
+  color: var(--text-faint);
+  padding: 4px 10px 2px;
+  background: var(--bg-section);
   border-bottom: 1px solid var(--border);
+  border-top: 1px solid var(--border);
 }
 
-/* Stat hero */
-.stat-hero {
+/* ── Section header ──────────────────────────────────────────────────────────── */
+.section-btn {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.stat-hero .label {
-  font-size: 0.62rem;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-  color: var(--text-faint);
-  font-weight: 600;
-}
-.stat-hero .value {
-  font-size: 1.6rem;
-  font-weight: 800;
-  letter-spacing: -0.03em;
-  line-height: 1;
-}
-
-/* Stat pill */
-.stat-pill {
-  display: flex;
-  flex-direction: column;
   align-items: center;
-  padding: 6px 12px;
+  width: 100%;
+  padding: 5px 10px;
   background: var(--bg-section);
-  border-radius: 6px;
-  border: 1px solid var(--border);
-  min-width: 64px;
+  border: none;
+  border-top: 1px solid var(--border);
+  cursor: pointer;
+  gap: 6px;
+  text-align: left;
 }
-.stat-pill .label {
-  font-size: 0.6rem;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--text-faint);
-  font-weight: 600;
-}
-.stat-pill .value {
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin-top: 1px;
-}
+.section-btn:hover { background: #eef1f9; }
 
-/* Badge */
-.slot-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 1px 6px;
-  border-radius: 4px;
-  font-size: 0.6rem;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
+/* ── Mobile nav ──────────────────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .nav-desktop { display: none !important; }
+  .nav-mobile  { display: flex !important; }
+  .page-pad    { padding: 12px !important; }
+  .hero-grid   { grid-template-columns: 1fr 1fr !important; }
+  .stat-row    { overflow-x: auto; flex-wrap: nowrap !important; padding-bottom: 4px; }
+  .card-grid   { grid-template-columns: 1fr !important; }
+  .history-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .roster-col-grid { grid-template-columns: 1fr !important; }
+}
+@media (min-width: 641px) {
+  .nav-mobile { display: none !important; }
 }
