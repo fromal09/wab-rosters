@@ -54,6 +54,8 @@ export default function RosterSection({ title, players, accentColor = '#1d4ed8',
     return 0
   })
 
+  const isDroppedSection = players.length > 0 && players[0].slot_type === 'dropped'
+
   const SortIcon = ({ k }: { k: SortKey }) => sortKey !== k ? null : (
     <span style={{ marginLeft: 3, fontSize: '0.6rem', color: accentColor }}>{sortDir === 'asc' ? '▲' : '▼'}</span>
   )
@@ -85,13 +87,13 @@ export default function RosterSection({ title, players, accentColor = '#1d4ed8',
                 Player <SortIcon k="name" />
               </th>
               <th className={showSort ? 'sortable' : ''} style={{ textAlign: 'center', width: 38 }} onClick={showSort ? () => handleSort('service_year') : undefined}>
-                Yr <SortIcon k="service_year" />
+                Svc Yr <SortIcon k="service_year" />
               </th>
-              <th className={showSort ? 'sortable' : ''} style={{ textAlign: 'right', width: 50 }} onClick={showSort ? () => handleSort('salary') : undefined}>
-                $ <SortIcon k="salary" />
+              <th className={showSort ? 'sortable' : ''} style={{ textAlign: 'right', width: 52 }} onClick={showSort ? () => handleSort('salary') : undefined}>
+                Salary <SortIcon k="salary" />
               </th>
-              <th className={showSort ? 'sortable' : ''} style={{ textAlign: 'right', width: 50 }} onClick={showSort ? () => handleSort('keeper') : undefined}>
-                KP <SortIcon k="keeper" />
+              <th className={showSort ? 'sortable' : ''} style={{ textAlign: 'right', width: 56 }} onClick={showSort ? () => handleSort('keeper') : undefined}>
+                {isDroppedSection ? 'Dead $' : 'KP'} <SortIcon k="keeper" />
               </th>
             </tr>
           </thead>

@@ -23,8 +23,8 @@ export async function GET(request: NextRequest) {
     FROM transactions t
     JOIN managers m ON m.id = t.manager_id
     WHERE t.player_id = ${player.id} AND t.is_draft_day = false
-    ORDER BY t.transaction_date DESC
-    LIMIT 50
+    ORDER BY t.transaction_date ASC NULLS LAST, t.year ASC
+    LIMIT 100
   `
 
   return NextResponse.json({ player, slots, transactions })

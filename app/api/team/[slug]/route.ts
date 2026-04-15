@@ -15,7 +15,7 @@ export async function GET(
 
   const roster = await query`
     SELECT p.name AS player_name, rs.service_year, rs.salary,
-           rs.slot_type, rs.is_franchise_player, rs.dead_money
+           rs.slot_type, rs.is_franchise_player::boolean AS is_franchise_player, rs.dead_money
     FROM roster_slots rs
     JOIN players p ON p.id = rs.player_id
     WHERE rs.manager_id = ${manager.id} AND rs.year = ${year}
