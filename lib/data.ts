@@ -80,6 +80,13 @@ export async function getAllTeamSummaries(year = CURRENT_YEAR) {
   const summaryMap = Object.fromEntries(summaries.map(s => [s.manager_id as string, s]))
   const budgetMap = Object.fromEntries(budgets.map(b => [b.manager_id as string, Number(b.budget)]))
 
+  const keeperRows = await query`
+    SELECT manager_id, SUM(delta) AS slots
+    FROM keeper_slot_transactions WHERE year = ${year}
+    GROUP BY manager_id
+  `
+  const keeperMap = Object.fromEntries(keeperRows.map(k => [k.manager_id as string, Number(k.slots)]))
+
   return managers.map(m => {
     const s = summaryMap[m.id as string] ?? {}
     const budget = budgetMap[m.id as string] ?? 0
@@ -92,6 +99,7 @@ export async function getAllTeamSummaries(year = CURRENT_YEAR) {
       injured_count: Number(s.injured_count ?? 0),
       dropped_count: Number(s.dropped_count ?? 0),
       ht_eligible_count: Number(s.ht_eligible_count ?? 0),
+      keeper_slots: keeperMap[m.id as string] ?? 10,
     }
   })
 }

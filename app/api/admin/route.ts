@@ -85,6 +85,13 @@ export async function POST(request: NextRequest) {
     }
     if (budgetAtoB > 0) await sql`INSERT INTO budget_transactions (manager_id,year,amount,note) VALUES (${aId},${year},${-budgetAtoB},${'Trade to '+managerBSlug+(note?': '+note:'')}),(${bId},${year},${budgetAtoB},${'Trade from '+managerASlug+(note?': '+note:'')})`
     if (budgetBtoA > 0) await sql`INSERT INTO budget_transactions (manager_id,year,amount,note) VALUES (${bId},${year},${-budgetBtoA},${'Trade to '+managerASlug+(note?': '+note:'')}),(${aId},${year},${budgetBtoA},${'Trade from '+managerBSlug+(note?': '+note:'')})`
+
+    // Keeper slot transfers
+    const keeperAtoB = parseInt(body.keeperAtoB) || 0
+    const keeperBtoA = parseInt(body.keeperBtoA) || 0
+    if (keeperAtoB > 0) await sql`INSERT INTO keeper_slot_transactions (manager_id,year,delta,note) VALUES (${aId},${year},${-keeperAtoB},${'Trade to '+managerBSlug+(note?': '+note:'')}),(${bId},${year},${keeperAtoB},${'Trade from '+managerASlug+(note?': '+note:'')})`
+    if (keeperBtoA > 0) await sql`INSERT INTO keeper_slot_transactions (manager_id,year,delta,note) VALUES (${bId},${year},${-keeperBtoA},${'Trade to '+managerASlug+(note?': '+note:'')}),(${aId},${year},${keeperBtoA},${'Trade from '+managerBSlug+(note?': '+note:'')})`
+
     return NextResponse.json({ ok: true })
   }
 
@@ -130,5 +137,24 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true })
   }
 
+  // ── Keeper slot adjustment ─────────────────────────────────────────────────
+  if (action === 'keeper_slots') {
+    const { managerSlug, delta, note } = body
+    const managerId = await getManagerId(sql, managerSlug)
+    if (!managerId) return NextResponse.json({ error: 'Manager not found' }, { status: 404 })
+    await sql`INSERT INTO keeper_slot_transactions (manager_id, year, delta, note) VALUES (${managerId}, ${year}, ${parseInt(delta)}, ${note ?? null})`
+    return NextResponse.json({ ok: true })
+  }
+
+  // ── Add team note ──────────────────────────────────────────────────────────
+  if (action === 'add_note') {
+    const { managerSlug, note } = body
+    const managerId = await getManagerId(sql, managerSlug)
+    if (!managerId) return NextResponse.json({ error: 'Manager not found' }, { status: 404 })
+    await sql`INSERT INTO team_notes (manager_id, year, note) VALUES (${managerId}, ${year}, ${note})`
+    return NextResponse.json({ ok: true })
+  }
+
   return NextResponse.json({ error: 'Unknown action' }, { status: 400 })
 }
+// This file is appended — keeper_slots and add_note actions added below
