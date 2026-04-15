@@ -24,6 +24,5 @@ export async function GET(request: NextRequest) {
       p.name
     LIMIT 12
   `
-
   return NextResponse.json(results)
 }

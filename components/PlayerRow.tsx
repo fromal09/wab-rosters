@@ -1,8 +1,8 @@
 'use client'
-import { getServiceYearColor, getServiceYearTextColor, getKeeperPrice } from '@/lib/constants'
+import { getServiceYearColor, getKeeperPrice } from '@/lib/constants'
 import ServiceYearBadge from './ServiceYearBadge'
 
-interface PlayerRowProps {
+interface Props {
   name: string
   serviceYear: number
   salary: number
@@ -10,82 +10,46 @@ interface PlayerRowProps {
   isFranchisePlayer: boolean
   deadMoney?: number | null
   onClick?: () => void
-  dimmed?: boolean
 }
 
-export default function PlayerRow({
-  name,
-  serviceYear,
-  salary,
-  slotType,
-  isFranchisePlayer,
-  deadMoney,
-  onClick,
-  dimmed = false,
-}: PlayerRowProps) {
-  const rowBg = getServiceYearColor(serviceYear)
-  const textColor = getServiceYearTextColor(serviceYear)
-  const keeperPrice = slotType !== 'dropped' ? getKeeperPrice(salary) : null
+export default function PlayerRow({ name, serviceYear, salary, slotType, isFranchisePlayer, deadMoney, onClick }: Props) {
   const isDropped = slotType === 'dropped'
+  const keeperPrice = isDropped ? null : getKeeperPrice(salary)
+  const svcBg = getServiceYearColor(serviceYear)
 
   return (
-    <tr
-      onClick={onClick}
-      style={{
-        cursor: onClick ? 'pointer' : 'default',
-        opacity: dimmed ? 0.6 : 1,
-      }}
-    >
-      {/* Service year stripe on left */}
-      <td style={{ padding: 0, width: 4, background: rowBg }} />
+    <tr onClick={onClick} style={{ cursor: onClick ? 'pointer' : 'default' }}>
+      {/* Service year color stripe */}
+      <td style={{ padding: 0, width: 3, background: svcBg }} />
 
-      {/* Player name */}
-      <td style={{ padding: '5px 10px 5px 8px', maxWidth: 200 }}>
-        <span
-          className={isFranchisePlayer ? 'franchise-player' : ''}
-          style={{
-            color: isDropped ? 'var(--text-muted)' : 'var(--text-primary)',
-            fontSize: '0.84rem',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 6,
-          }}
-        >
+      <td style={{ padding: '5px 10px 5px 8px' }}>
+        <span className={isFranchisePlayer ? 'franchise-player' : ''} style={{
+          color: isDropped ? '#9ca3af' : '#111827',
+          fontSize: '0.84rem',
+          display: 'flex', alignItems: 'center', gap: 5,
+          textDecoration: isDropped ? 'line-through' : 'none',
+          textDecorationColor: '#d1d5db',
+        }}>
           {name}
-          {isFranchisePlayer && (
-            <span
-              title="Franchise player — rostered entire career"
-              style={{ fontSize: '0.6rem', color: '#4f7ef0', letterSpacing: '0.03em' }}
-            >
-              ★
-            </span>
-          )}
+          {isFranchisePlayer && <span title="Franchise player" style={{ color: '#1d4ed8', fontSize: '0.65rem' }}>★</span>}
         </span>
       </td>
 
-      {/* Service year */}
-      <td style={{ padding: '5px 8px', textAlign: 'center', width: 44 }}>
+      <td style={{ padding: '5px 8px', textAlign: 'center', width: 40 }}>
         <ServiceYearBadge year={serviceYear} />
       </td>
 
-      {/* Salary */}
-      <td style={{ padding: '5px 10px', textAlign: 'right', width: 60, fontVariantNumeric: 'tabular-nums' }}>
-        <span style={{ color: isDropped ? 'var(--text-muted)' : 'var(--text-secondary)', fontSize: '0.83rem' }}>
-          ${isDropped ? (deadMoney ?? salary) : salary}
+      <td style={{ padding: '5px 10px', textAlign: 'right', width: 56, fontVariantNumeric: 'tabular-nums' }}>
+        <span style={{ fontSize: '0.83rem', fontWeight: 600, color: isDropped ? '#9ca3af' : '#374151' }}>
+          ${isDropped ? (deadMoney ?? Math.ceil(salary / 2)) : salary}
         </span>
       </td>
 
-      {/* Keeper price or dead money label */}
-      <td style={{ padding: '5px 10px', textAlign: 'right', width: 60, fontVariantNumeric: 'tabular-nums' }}>
-        {isDropped ? (
-          <span style={{ color: 'var(--red)', fontSize: '0.75rem', fontWeight: 600 }}>
-            DEAD
-          </span>
-        ) : (
-          <span style={{ color: 'var(--text-muted)', fontSize: '0.83rem' }}>
-            ${keeperPrice}
-          </span>
-        )}
+      <td style={{ padding: '5px 10px', textAlign: 'right', width: 56, fontVariantNumeric: 'tabular-nums' }}>
+        {isDropped
+          ? <span style={{ fontSize: '0.65rem', fontWeight: 700, color: '#dc2626', letterSpacing: '0.03em' }}>DEAD</span>
+          : <span style={{ fontSize: '0.83rem', color: '#9ca3af' }}>${keeperPrice}</span>
+        }
       </td>
     </tr>
   )

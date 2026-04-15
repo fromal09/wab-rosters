@@ -10,7 +10,8 @@ interface RosterSlot {
   salary: number
   dead_money?: number | null
   is_franchise_player: boolean
-  managers?: { name: string; slug: string }
+  manager_name: string
+  manager_slug: string
 }
 
 interface Props {
@@ -18,165 +19,150 @@ interface Props {
   onClose: () => void
 }
 
-const SLOT_COLOR: Record<string, string> = {
-  MLB: '#3ecf8e',
-  MiLB: '#4f7ef0',
-  IL: '#f0c040',
-  dropped: '#f0614f',
+// Managers no longer in the league — hide from history
+const DEPARTED = new Set(['Brendan Prin', 'Josh Meyerchick', 'Tom Gieryn'])
+
+const SLOT_STYLES: Record<string, { color: string; bg: string; label: string }> = {
+  MLB:     { color: '#15803d', bg: '#f0fdf4', label: 'MLB' },
+  MiLB:    { color: '#1d4ed8', bg: '#eff6ff', label: 'MiLB' },
+  IL:      { color: '#d97706', bg: '#fffbeb', label: 'IL' },
+  dropped: { color: '#dc2626', bg: '#fef2f2', label: 'Dropped' },
 }
 
 export default function PlayerModal({ playerName, onClose }: Props) {
-  const [data, setData] = useState<{ slots: RosterSlot[]; transactions: unknown[] } | null>(null)
+  const [data, setData] = useState<{ slots: RosterSlot[] } | null>(null)
   const [loading, setLoading] = useState(false)
 
   const fetchData = useCallback(async (name: string) => {
     setLoading(true)
     try {
       const res = await fetch(`/api/player?name=${encodeURIComponent(name)}`)
-      const json = await res.json()
-      setData(json)
-    } finally {
-      setLoading(false)
-    }
+      setData(await res.json())
+    } finally { setLoading(false) }
   }, [])
 
   useEffect(() => {
-    if (playerName) {
-      setData(null)
-      fetchData(playerName)
-    }
+    if (playerName) { setData(null); fetchData(playerName) }
   }, [playerName, fetchData])
 
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
+    const fn = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', fn)
+    return () => window.removeEventListener('keydown', fn)
   }, [onClose])
 
   if (!playerName) return null
 
-  // Group slots by year
-  const slotsByYear = data?.slots.reduce((acc: Record<number, RosterSlot[]>, s: RosterSlot) => {
-    ;(acc[s.year] = acc[s.year] || []).push(s)
-    return acc
-  }, {})
+  // Filter departed managers and group by year
+  const visibleSlots = (data?.slots ?? []).filter(s => !DEPARTED.has(s.manager_name))
+  const years = [...new Set(visibleSlots.map(s => s.year))].sort((a, b) => b - a)
+  const byYear = Object.fromEntries(years.map(y => [y, visibleSlots.filter(s => s.year === y)]))
 
-  const years = slotsByYear ? Object.keys(slotsByYear).map(Number).sort((a, b) => b - a) : []
+  // Latest active slot for header info
+  const latestActive = visibleSlots.find(s => s.slot_type !== 'dropped')
+  const latest = visibleSlots[0]
 
   return (
     <>
-      {/* Backdrop */}
-      <div
-        onClick={onClose}
-        style={{
-          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)',
-          zIndex: 100, backdropFilter: 'blur(2px)',
-        }}
-      />
-
-      {/* Modal */}
-      <div
-        style={{
-          position: 'fixed', top: '50%', left: '50%',
-          transform: 'translate(-50%, -50%)',
-          width: 'min(540px, 95vw)',
-          maxHeight: '85vh',
-          background: '#1a1d27',
-          border: '1px solid #2e3347',
-          borderRadius: 12,
-          zIndex: 101,
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-        }}
-      >
+      <div onClick={onClose} style={{
+        position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)',
+        zIndex: 100, backdropFilter: 'blur(3px)',
+      }} />
+      <div style={{
+        position: 'fixed', top: '50%', left: '50%',
+        transform: 'translate(-50%, -50%)',
+        width: 'min(520px, 95vw)', maxHeight: '85vh',
+        background: '#fff', border: '1px solid #e2e6eb',
+        borderRadius: 12, zIndex: 101,
+        display: 'flex', flexDirection: 'column',
+        overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
+      }}>
         {/* Header */}
-        <div style={{ padding: '16px 20px 14px', borderBottom: '1px solid #2e3347', flexShrink: 0 }}>
+        <div style={{ padding: '18px 20px 16px', borderBottom: '1px solid #f0f2f5' }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
             <div>
-              <h2 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+              <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: '#111827', letterSpacing: '-0.02em' }}>
                 {playerName}
               </h2>
-              {data && data.slots.length > 0 && (() => {
-                const latest = data.slots.reduce((a: RosterSlot, b: RosterSlot) => a.year > b.year ? a : b)
-                return (
-                  <div style={{ marginTop: 4, display: 'flex', gap: 8, alignItems: 'center' }}>
-                    <ServiceYearBadge year={latest.service_year} size="md" />
-                    <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                      Yr {latest.service_year} · ${latest.salary} · KP ${getKeeperPrice(latest.salary)}
-                    </span>
-                    {latest.is_franchise_player && (
-                      <span style={{ fontSize: '0.7rem', color: '#4f7ef0', fontWeight: 600 }}>
+              {latest && !loading && (
+                <div style={{ marginTop: 6, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <ServiceYearBadge year={latest.service_year} size="md" />
+                  <span style={{ fontSize: '0.8rem', color: '#6b7280' }}>
+                    Yr {latest.service_year}
+                  </span>
+                  {latestActive && <>
+                    <span style={{ color: '#d1d5db' }}>·</span>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#111827' }}>${latestActive.salary}</span>
+                    <span style={{ color: '#d1d5db' }}>·</span>
+                    <span style={{ fontSize: '0.8rem', color: '#6b7280' }}>KP ${getKeeperPrice(latestActive.salary)}</span>
+                    {latestActive.is_franchise_player && (
+                      <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#1d4ed8', background: '#eff6ff', padding: '1px 6px', borderRadius: 4 }}>
                         ★ Franchise
                       </span>
                     )}
-                  </div>
-                )
-              })()}
+                  </>}
+                </div>
+              )}
             </div>
-            <button
-              onClick={onClose}
-              style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '1.2rem', lineHeight: 1, padding: 4 }}
-            >
-              ✕
-            </button>
+            <button onClick={onClose} style={{
+              background: '#f4f5f7', border: 'none', borderRadius: 6,
+              color: '#6b7280', cursor: 'pointer', fontSize: '1rem',
+              padding: '4px 8px', lineHeight: 1,
+            }}>✕</button>
           </div>
         </div>
 
         {/* Body */}
-        <div style={{ overflowY: 'auto', flex: 1, padding: '12px 20px 20px' }}>
-          {loading && (
-            <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>Loading…</div>
+        <div style={{ overflowY: 'auto', flex: 1, padding: '14px 20px 20px' }}>
+          {loading && <div style={{ textAlign: 'center', padding: 40, color: '#9ca3af' }}>Loading…</div>}
+          {!loading && years.length === 0 && (
+            <div style={{ textAlign: 'center', padding: 40, color: '#9ca3af' }}>No history available.</div>
           )}
 
-          {!loading && data && years.length === 0 && (
-            <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>No history found.</div>
-          )}
-
-          {!loading && data && years.map(year => (
-            <div key={year} style={{ marginBottom: 12 }}>
-              <div style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)', marginBottom: 4 }}>
+          {!loading && years.map(year => (
+            <div key={year} style={{ marginBottom: 14 }}>
+              <div style={{ fontSize: '0.67rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#9ca3af', marginBottom: 5 }}>
                 {year}
               </div>
-              {slotsByYear![year].map((slot, i) => (
-                <div
-                  key={i}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 10,
-                    padding: '6px 10px',
-                    background: '#1e2235',
-                    borderRadius: 6,
-                    marginBottom: 4,
-                    borderLeft: `3px solid ${SLOT_COLOR[slot.slot_type] ?? '#555'}`,
-                  }}
-                >
-                  <span
-                    style={{
-                      fontSize: '0.65rem',
-                      fontWeight: 700,
-                      textTransform: 'uppercase',
-                      color: SLOT_COLOR[slot.slot_type] ?? 'var(--text-muted)',
-                      minWidth: 36,
-                    }}
-                  >
-                    {slot.slot_type}
-                  </span>
-                  <span style={{ fontSize: '0.83rem', color: 'var(--text-primary)', flex: 1 }}>
-                    {(slot.managers as { name: string } | undefined)?.name ?? '—'}
-                  </span>
-                  <ServiceYearBadge year={slot.service_year} />
-                  <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', minWidth: 30, textAlign: 'right' }}>
-                    ${slot.slot_type === 'dropped' ? (slot.dead_money ?? Math.ceil(slot.salary / 2)) : slot.salary}
-                  </span>
-                  {slot.slot_type !== 'dropped' && (
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', minWidth: 30, textAlign: 'right' }}>
-                      KP ${getKeeperPrice(slot.salary)}
+              {byYear[year].map((slot, i) => {
+                const style = SLOT_STYLES[slot.slot_type] ?? { color: '#6b7280', bg: '#f4f5f7', label: slot.slot_type }
+                const displaySalary = slot.slot_type === 'dropped'
+                  ? (slot.dead_money ?? Math.ceil(slot.salary / 2))
+                  : slot.salary
+                return (
+                  <div key={i} style={{
+                    display: 'flex', alignItems: 'center', gap: 10,
+                    padding: '8px 12px', borderRadius: 7, marginBottom: 4,
+                    background: style.bg,
+                    border: `1px solid ${style.color}22`,
+                  }}>
+                    {/* Slot badge */}
+                    <span style={{
+                      fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase',
+                      color: style.color, minWidth: 42, letterSpacing: '0.04em',
+                    }}>
+                      {style.label}
                     </span>
-                  )}
-                </div>
-              ))}
+
+                    {/* Manager name — prominent */}
+                    <span style={{ flex: 1, fontSize: '0.88rem', fontWeight: 600, color: '#111827' }}>
+                      {slot.manager_name}
+                    </span>
+
+                    <ServiceYearBadge year={slot.service_year} />
+
+                    <span style={{ fontSize: '0.83rem', fontWeight: 700, color: '#374151', minWidth: 30, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                      ${displaySalary}
+                    </span>
+
+                    {slot.slot_type !== 'dropped' && (
+                      <span style={{ fontSize: '0.75rem', color: '#9ca3af', minWidth: 38, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                        KP ${getKeeperPrice(slot.salary)}
+                      </span>
+                    )}
+                  </div>
+                )
+              })}
             </div>
           ))}
         </div>
