@@ -10,11 +10,10 @@ interface Player {
 type SortKey = 'salary' | 'service_year' | 'name' | 'keeper'
 
 interface Props {
-  title: string; players: Player[]; accentColor?: string
-  defaultOpen?: boolean; onPlayerClick?: (name: string) => void
+  title: string; players: Player[]; accentColor?: string; defaultOpen?: boolean
 }
 
-export default function RosterSection({ title, players, accentColor = '#1a56db', defaultOpen = true, onPlayerClick }: Props) {
+export default function RosterSection({ title, players, accentColor = '#1a56db', defaultOpen = true }: Props) {
   const [open, setOpen] = useState(defaultOpen)
   const [sortKey, setSortKey] = useState<SortKey>('salary')
   const [sortDir, setSortDir] = useState<'asc'|'desc'>('desc')
@@ -32,18 +31,19 @@ export default function RosterSection({ title, players, accentColor = '#1a56db',
 
   const sorted = [...players].sort((a, b) => {
     let av: number|string, bv: number|string
-    if (sortKey === 'salary')         { av = a.salary;                     bv = b.salary }
-    else if (sortKey === 'service_year') { av = a.service_year;            bv = b.service_year }
-    else if (sortKey === 'keeper')    { av = getKeeperPrice(a.salary);     bv = getKeeperPrice(b.salary) }
-    else                              { av = a.player_name.toLowerCase();  bv = b.player_name.toLowerCase() }
+    if (sortKey === 'salary')            { av = a.salary;                    bv = b.salary }
+    else if (sortKey === 'service_year') { av = a.service_year;              bv = b.service_year }
+    else if (sortKey === 'keeper')       { av = getKeeperPrice(a.salary);    bv = getKeeperPrice(b.salary) }
+    else                                 { av = a.player_name.toLowerCase(); bv = b.player_name.toLowerCase() }
     if (av < bv) return sortDir === 'asc' ? -1 : 1
     if (av > bv) return sortDir === 'asc' ? 1 : -1
     return 0
   })
 
   const Arr = ({ k }: { k: SortKey }) =>
-    sortKey !== k ? <span style={{ color: '#d1d5db', fontSize: '0.55rem' }}>⇅</span>
-    : <span style={{ color: accentColor, fontSize: '0.55rem' }}>{sortDir === 'asc' ? '▲' : '▼'}</span>
+    sortKey !== k
+      ? <span style={{ color: '#d1d5db', fontSize: '0.55rem' }}>⇅</span>
+      : <span style={{ color: accentColor, fontSize: '0.55rem' }}>{sortDir === 'asc' ? '▲' : '▼'}</span>
 
   const thStyle = (align: 'left'|'right'|'center' = 'left', w?: number): React.CSSProperties => ({
     padding: '5px 8px', textAlign: align, fontSize: '0.62rem', textTransform: 'uppercase',
@@ -69,15 +69,9 @@ export default function RosterSection({ title, players, accentColor = '#1a56db',
           <thead>
             <tr>
               <th style={{ width: 5, padding: 0, background: '#f6f7f9', borderBottom: '1px solid #e4e7ec' }} />
-              <th style={thStyle('left')} onClick={() => handleSort('name')}>
-                Player <Arr k="name" />
-              </th>
-              <th style={thStyle('center', 44)} onClick={() => handleSort('service_year')}>
-                Svc Yr <Arr k="service_year" />
-              </th>
-              <th style={thStyle('right', 54)} onClick={() => handleSort('salary')}>
-                Salary <Arr k="salary" />
-              </th>
+              <th style={thStyle('left')} onClick={() => handleSort('name')}>Player <Arr k="name" /></th>
+              <th style={thStyle('center', 44)} onClick={() => handleSort('service_year')}>Svc Yr <Arr k="service_year" /></th>
+              <th style={thStyle('right', 54)} onClick={() => handleSort('salary')}>Salary <Arr k="salary" /></th>
               <th style={thStyle('right', 60)} onClick={() => handleSort('keeper')}>
                 {isDropped ? 'Dead $' : 'Keeper $'} <Arr k="keeper" />
               </th>
@@ -90,7 +84,6 @@ export default function RosterSection({ title, players, accentColor = '#1a56db',
                 name={p.player_name} serviceYear={p.service_year} salary={p.salary}
                 slotType={p.slot_type as 'MLB'|'MiLB'|'IL'|'dropped'}
                 isFranchisePlayer={p.is_franchise_player} deadMoney={p.dead_money}
-                onClick={onPlayerClick ? () => onPlayerClick(p.player_name) : undefined}
               />
             ))}
           </tbody>

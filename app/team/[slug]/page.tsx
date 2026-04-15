@@ -3,7 +3,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import RosterSection from '@/components/RosterSection'
-import PlayerModal from '@/components/PlayerModal'
+
 
 interface Player {
   player_name: string; service_year: number; salary: number
@@ -26,7 +26,6 @@ export default function TeamPage() {
   const slug = params.slug as string
   const [data, setData] = useState<TeamData | null>(null)
   const [loading, setLoading] = useState(true)
-  const [selectedPlayer, setSelectedPlayer] = useState<string | null>(null)
   const [showBudget, setShowBudget] = useState(false)
   const [year, setYear] = useState(2026)
 
@@ -56,7 +55,6 @@ export default function TeamPage() {
 
   return (
     <div>
-      <PlayerModal playerName={selectedPlayer} onClose={() => setSelectedPlayer(null)} />
 
       {/* Breadcrumb */}
       <div style={{ marginBottom: 14, fontSize: '0.8rem', color: '#9ca3af' }}>
@@ -171,10 +169,6 @@ export default function TeamPage() {
 
       {/* Roster card */}
       <div className="card" style={{ overflow: 'hidden' }}>
-        <RosterSection title={`Major League (${mlb.length})`}     players={mlb}     accentColor="#15803d" defaultOpen onPlayerClick={setSelectedPlayer} />
-        <RosterSection title={`Minor League (${milb.length})`}    players={milb}    accentColor="#1d4ed8" defaultOpen onPlayerClick={setSelectedPlayer} />
-        <RosterSection title={`Injured List (${il.length})`}      players={il}      accentColor="#d97706" defaultOpen onPlayerClick={setSelectedPlayer} />
-        <RosterSection title={`Dropped — $${deadMoney} dead (${dropped.length})`} players={dropped} accentColor="#dc2626" defaultOpen onPlayerClick={setSelectedPlayer} />
       </div>
 
       <p style={{ marginTop: 10, fontSize: '0.72rem', color: '#9ca3af', textAlign: 'center' }}>
