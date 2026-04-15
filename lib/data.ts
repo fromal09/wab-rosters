@@ -87,6 +87,16 @@ export async function getAllTeamSummaries(year = CURRENT_YEAR) {
   `
   const keeperMap = Object.fromEntries(keeperRows.map(k => [k.manager_id as string, Number(k.slots)]))
 
+  const notesRows = await query`
+    SELECT manager_id, note, id FROM team_notes WHERE year = ${year} ORDER BY created_at ASC
+  `
+  const notesMap: Record<string, {id:string;note:string}[]> = {}
+  for (const n of notesRows) {
+    const mid = n.manager_id as string
+    if (!notesMap[mid]) notesMap[mid] = []
+    notesMap[mid].push({ id: n.id as string, note: n.note as string })
+  }
+
   return managers.map(m => {
     const s = summaryMap[m.id as string] ?? {}
     const budget = budgetMap[m.id as string] ?? 0
@@ -100,6 +110,7 @@ export async function getAllTeamSummaries(year = CURRENT_YEAR) {
       dropped_count: Number(s.dropped_count ?? 0),
       ht_eligible_count: Number(s.ht_eligible_count ?? 0),
       keeper_slots: keeperMap[m.id as string] ?? 10,
+      notes: notesMap[m.id as string] ?? [],
     }
   })
 }

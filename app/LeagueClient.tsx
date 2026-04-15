@@ -12,6 +12,7 @@ interface TeamSummary {
   budget:number;salary:number;cap_space:number
   injured_count:number;dropped_count:number;ht_eligible_count:number
   keeper_slots:number
+  notes:{id:string;note:string}[]
 }
 interface Player { player_name:string;service_year:number;salary:number;slot_type:string;is_franchise_player:boolean;dead_money?:number|null }
 interface TeamRoster { slug:string;roster:Player[];loading:boolean }
@@ -114,23 +115,32 @@ export default function LeagueClient({teams,year}:{teams:TeamSummary[];year:numb
             return (
               <div key={t.manager.slug} className="card" style={{overflow:'hidden'}}>
                 {/* Team header */}
-                <div style={{padding:'10px 14px',background:'#f6f7f9',borderBottom:'1px solid #e4e7ec',display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:8}}>
-                  <a href={`/team/${t.manager.slug}`} style={{fontWeight:800,fontSize:'0.9rem',color:'#0f1117',textDecoration:'none'}}>{t.manager.name}</a>
-                  <div style={{display:'flex',gap:10,alignItems:'center',flexWrap:'wrap'}}>
-                    {[
-                      {label:'Budget',value:`$${t.budget}`,color:'#0f1117'},
-                      {label:'Salary',value:`$${t.salary}`,color:'#374151'},
-                      {label:'Cap',value:`$${t.cap_space}`,color:capColor},
-                      {label:'IL',value:t.injured_count,color:'#b45309'},
-                      {label:'Dead',value:`$${deadMoney}`,color:'#b91c1c'},
-                      {label:'KSlots',value:t.keeper_slots,color:'#1a56db'},
-                    ].map(s=>(
-                      <div key={s.label} style={{display:'flex',gap:4,alignItems:'baseline'}}>
-                        <span style={{fontSize:'0.58rem',textTransform:'uppercase',letterSpacing:'0.06em',color:'#9ca3af',fontWeight:600}}>{s.label}</span>
-                        <span style={{fontSize:'0.85rem',fontWeight:800,color:s.color,letterSpacing:'-0.01em'}}>{s.value}</span>
-                      </div>
-                    ))}
+                <div style={{padding:'10px 14px',background:'#f6f7f9',borderBottom:'1px solid #e4e7ec'}}>
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:8,marginBottom: t.notes.length > 0 ? 8 : 0}}>
+                    <a href={`/team/${t.manager.slug}`} style={{fontWeight:800,fontSize:'0.9rem',color:'#0f1117',textDecoration:'none'}}>{t.manager.name}</a>
+                    <div style={{display:'flex',gap:10,alignItems:'center',flexWrap:'wrap'}}>
+                      {[
+                        {label:'Budget',value:`$${t.budget}`,color:'#0f1117'},
+                        {label:'Salary',value:`$${t.salary}`,color:'#374151'},
+                        {label:'Cap',value:`$${t.cap_space}`,color:capColor},
+                        {label:'IL',value:t.injured_count,color:'#b45309'},
+                        {label:'Dead',value:`$${deadMoney}`,color:'#b91c1c'},
+                        {label:'Slots',value:t.keeper_slots,color:'#1a56db'},
+                      ].map(s=>(
+                        <div key={s.label} style={{display:'flex',gap:4,alignItems:'baseline'}}>
+                          <span style={{fontSize:'0.58rem',textTransform:'uppercase',letterSpacing:'0.06em',color:'#9ca3af',fontWeight:600}}>{s.label}</span>
+                          <span style={{fontSize:'0.85rem',fontWeight:800,color:s.color,letterSpacing:'-0.01em'}}>{s.value}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
+                  {t.notes.length > 0 && (
+                    <div style={{padding:'6px 10px',background:'#fffbeb',border:'1px solid #fde68a',borderRadius:5}}>
+                      {t.notes.map(n=>(
+                        <div key={n.id} style={{fontSize:'0.75rem',color:'#374151',lineHeight:1.5}}>{n.note}</div>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 {rd?.loading&&<div style={{padding:16,textAlign:'center',color:'#9ca3af',fontSize:'0.8rem'}}>Loading…</div>}
                 {!rd?.loading&&rd&&(

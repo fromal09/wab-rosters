@@ -349,30 +349,75 @@ function FranchiseTab() {
 }
 
 function NotesTab() {
-  const [manager, setManager] = useState(''); const [note, setNote] = useState('')
-  const [loading, setLoading] = useState(false); const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
-  async function submit() {
+  const [manager, setManager] = useState('')
+  const [note, setNote] = useState('')
+  const [existingNotes, setExistingNotes] = useState<{id:string;note:string}[]>([])
+  const [loading, setLoading] = useState(false)
+  const [loadingNotes, setLoadingNotes] = useState(false)
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
+
+  async function fetchNotes(slug: string) {
+    if (!slug) return
+    setLoadingNotes(true)
+    try {
+      const data = await (await fetch(`/api/team/${slug}?year=${CURRENT_YEAR}`)).json()
+      setExistingNotes(data.notes ?? [])
+    } finally { setLoadingNotes(false) }
+  }
+
+  function handleManagerChange(slug: string) {
+    setManager(slug); setExistingNotes([]); setMsg(null)
+    if (slug) fetchNotes(slug)
+  }
+
+  async function addNote() {
     if (!manager || !note.trim()) return setMsg({ ok: false, text: 'Fill in all fields' })
     setLoading(true); setMsg(null)
-    // Notes are stored as a budget_transaction-style ledger entry with amount=0
     const json = await adminPost({ action: 'add_note', year: CURRENT_YEAR, managerSlug: manager, note: note.trim() })
-    setMsg(json.ok ? { ok: true, text: 'Note added!' } : { ok: false, text: json.error })
-    if (json.ok) setNote('')
+    if (json.ok) { setMsg({ ok: true, text: 'Note added!' }); setNote(''); fetchNotes(manager) }
+    else setMsg({ ok: false, text: json.error })
     setLoading(false)
   }
+
+  async function deleteNote(noteId: string) {
+    const json = await adminPost({ action: 'delete_note', noteId })
+    if (json.ok) { setExistingNotes(n => n.filter(x => x.id !== noteId)); setMsg({ ok: true, text: 'Note removed.' }) }
+    else setMsg({ ok: false, text: json.error })
+  }
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <p style={{ margin: 0, fontSize: '0.83rem', color: '#6b7280' }}>
-        Add a note to a team's roster page. Notes appear in the team header for all users to see. Examples: missed minimums, future budget committed, trade notes.
+        Notes appear on team cards and roster pages. Examples: missed minimums, future budget traded, salary corrections.
       </p>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 3fr', gap: 12 }}>
-        <ManagerSelect label="Manager" value={manager} onChange={setManager} />
-        <Input label="Note" value={note} onChange={setNote} placeholder="1 missed minimum; $5 future budget to Jacob in 2027" />
+        <ManagerSelect label="Manager" value={manager} onChange={handleManagerChange} />
+        <Input label="New Note" value={note} onChange={setNote} placeholder="e.g. 1 missed minimum — $5 penalty applied" />
       </div>
       <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-        <Btn label="Add Note" onClick={submit} loading={loading} />
+        <Btn label="Add Note" onClick={addNote} loading={loading} />
         <Status msg={msg} />
       </div>
+
+      {/* Existing notes for selected manager */}
+      {manager && (
+        <div style={{ borderTop: '1px solid #e4e7ec', paddingTop: 14 }}>
+          <div style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#9ca3af', marginBottom: 8 }}>
+            Current Notes {loadingNotes && <span style={{ fontWeight: 400 }}>— loading…</span>}
+          </div>
+          {!loadingNotes && existingNotes.length === 0 && (
+            <div style={{ color: '#9ca3af', fontSize: '0.82rem' }}>No notes for this manager.</div>
+          )}
+          {existingNotes.map(n => (
+            <div key={n.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '8px 10px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 6, marginBottom: 6 }}>
+              <span style={{ flex: 1, fontSize: '0.83rem', color: '#374151', lineHeight: 1.5 }}>{n.note}</span>
+              <button onClick={() => deleteNote(n.id)} style={{ padding: '2px 8px', background: '#fff', border: '1px solid #fca5a5', borderRadius: 4, color: '#b91c1c', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600, flexShrink: 0 }}>
+                Remove
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

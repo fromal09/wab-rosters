@@ -146,6 +146,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true })
   }
 
+  // ── Delete team note ───────────────────────────────────────────────────────
+  if (action === 'delete_note') {
+    const { noteId } = body
+    if (!noteId) return NextResponse.json({ error: 'noteId required' }, { status: 400 })
+    await sql`DELETE FROM team_notes WHERE id = ${noteId}`
+    return NextResponse.json({ ok: true })
+  }
+
   // ── Add team note ──────────────────────────────────────────────────────────
   if (action === 'add_note') {
     const { managerSlug, note } = body
