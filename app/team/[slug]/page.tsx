@@ -4,7 +4,6 @@ import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import RosterSection from '@/components/RosterSection'
 
-
 interface Player {
   player_name: string; service_year: number; salary: number
   slot_type: string; is_franchise_player: boolean; dead_money?: number | null
@@ -50,12 +49,11 @@ export default function TeamPage() {
   const deadMoney    = dropped.reduce((a, p) => a + (p.dead_money ?? Math.ceil(p.salary / 2)), 0)
   const totalSalary  = activeSalary + deadMoney
   const capSpace     = budget.currentBudget - totalSalary
-  const capColor     = capSpace <= 0 ? '#dc2626' : capSpace <= 5 ? '#d97706' : '#15803d'
+  const capColor     = capSpace <= 0 ? '#b91c1c' : capSpace <= 5 ? '#b45309' : '#166534'
   const availYears   = [2026, 2025, 2024, 2023, 2022, 2021, 2020, 2019]
 
   return (
     <div>
-
       {/* Breadcrumb */}
       <div style={{ marginBottom: 14, fontSize: '0.8rem', color: '#9ca3af' }}>
         <Link href="/" style={{ color: '#6b7280', textDecoration: 'none' }}>League</Link>
@@ -64,61 +62,62 @@ export default function TeamPage() {
       </div>
 
       {/* Team header card */}
-      <div className="card" style={{ padding: '18px 22px', marginBottom: 14 }}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
+      <div className="card" style={{ padding: '16px 20px', marginBottom: 14 }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 14 }}>
           <div>
-            <h1 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 800, color: '#111827', letterSpacing: '-0.02em' }}>{manager.name}</h1>
-            <div style={{ marginTop: 2, fontSize: '0.8rem', color: '#9ca3af' }}>{year} Season</div>
+            <h1 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 800, color: '#0f1117', letterSpacing: '-0.02em' }}>{manager.name}</h1>
+            <div style={{ marginTop: 2, fontSize: '0.78rem', color: '#9ca3af' }}>{year} Season</div>
           </div>
           <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
             {availYears.map(yr => (
               <button key={yr} onClick={() => setYear(yr)} style={{
-                padding: '4px 10px', borderRadius: 5, border: '1px solid',
-                borderColor: yr === year ? '#1d4ed8' : '#e2e6eb',
-                background: yr === year ? '#eff6ff' : '#fff',
-                color: yr === year ? '#1d4ed8' : '#6b7280',
-                cursor: 'pointer', fontSize: '0.75rem', fontWeight: yr === year ? 700 : 400,
+                padding: '4px 9px', borderRadius: 5, border: '1px solid',
+                borderColor: yr === year ? '#1a56db' : '#e4e7ec',
+                background: yr === year ? '#ebf0fd' : '#fff',
+                color: yr === year ? '#1a56db' : '#6b7280',
+                cursor: 'pointer', fontSize: '0.73rem', fontWeight: yr === year ? 700 : 400,
               }}>{yr}</button>
             ))}
           </div>
         </div>
 
-        {/* Hero numbers — Budget, Salary, Cap Space */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 1, background: '#e2e6eb', borderRadius: 8, overflow: 'hidden', marginBottom: 14 }}>
+        {/* Hero numbers — 4 boxes */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 1, background: '#e4e7ec', borderRadius: 8, overflow: 'hidden', marginBottom: 12 }}>
           {[
-            { label: 'Budget',    value: `$${budget.currentBudget}`, color: '#111827', bg: '#fff' },
-            { label: 'Salary',    value: `$${totalSalary}`,          color: '#374151', bg: '#fff' },
-            { label: 'Cap Space', value: `$${capSpace}`,             color: capColor,
+            { label: 'Budget',    value: `$${budget.currentBudget}`,    color: '#0f1117', bg: '#fff' },
+            { label: 'Salary',    value: `$${totalSalary}`,             color: '#374151', bg: '#fff' },
+            { label: 'Cap Space', value: `$${capSpace}`,                color: capColor,
               bg: capSpace <= 0 ? '#fef2f2' : capSpace <= 5 ? '#fffbeb' : '#f0fdf4' },
+            { label: 'Keeper Slots', value: String(keeperSlots.current),
+              color: keeperSlots.current === 0 ? '#b91c1c' : '#1a56db', bg: '#fff' },
           ].map(s => (
-            <div key={s.label} style={{ background: s.bg, padding: '12px 18px', textAlign: 'center' }}>
-              <div style={{ fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.07em', color: '#9ca3af', fontWeight: 600, marginBottom: 3 }}>{s.label}</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: 800, color: s.color, letterSpacing: '-0.03em', lineHeight: 1 }}>{s.value}</div>
+            <div key={s.label} style={{ background: s.bg, padding: '10px 14px', textAlign: 'center' }}>
+              <div style={{ fontSize: '0.58rem', textTransform: 'uppercase', letterSpacing: '0.07em', color: '#9ca3af', fontWeight: 600, marginBottom: 3 }}>{s.label}</div>
+              <div style={{ fontSize: '1.3rem', fontWeight: 800, color: s.color, letterSpacing: '-0.03em', lineHeight: 1 }}>{s.value}</div>
             </div>
           ))}
         </div>
 
-        {/* Secondary stats row */}
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+        {/* Secondary stats */}
+        <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', alignItems: 'center' }}>
           {[
-            { label: 'Active $',     value: `$${activeSalary}`, color: '#374151' },
-            { label: 'Dead $',       value: `$${deadMoney}`,    color: deadMoney > 0 ? '#dc2626' : '#9ca3af' },
-            { label: 'IL',           value: String(il.length),  color: '#d97706' },
-            { label: 'Drops',        value: String(dropped.length), color: '#dc2626' },
-            { label: 'HT-Elig',      value: String([...mlb,...milb,...il].filter(p => p.service_year >= 1).length), color: '#15803d' },
-            { label: 'Keeper Slots', value: String(keeperSlots.current), color: keeperSlots.current === 0 ? '#dc2626' : '#1d4ed8' },
+            { label: 'Active $', value: `$${activeSalary}`, color: '#374151' },
+            { label: 'Dead $',   value: `$${deadMoney}`,   color: deadMoney > 0 ? '#b91c1c' : '#9ca3af' },
+            { label: 'IL',       value: String(il.length), color: '#b45309' },
+            { label: 'Drops',    value: String(dropped.length), color: '#b91c1c' },
+            { label: 'HT-Elig',  value: String([...mlb,...milb,...il].filter(p => p.service_year >= 1).length), color: '#166534' },
           ].map(s => (
-            <div key={s.label} style={{ display: 'flex', alignItems: 'baseline', gap: 4, padding: '4px 10px', background: '#f4f5f7', border: '1px solid #e2e6eb', borderRadius: 5 }}>
-              <span style={{ fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: '#9ca3af', fontWeight: 600 }}>{s.label}</span>
-              <span style={{ fontSize: '0.9rem', fontWeight: 800, color: s.color }}>{s.value}</span>
+            <div key={s.label} style={{ display: 'flex', alignItems: 'baseline', gap: 3, padding: '3px 8px', background: '#f6f7f9', border: '1px solid #e4e7ec', borderRadius: 4 }}>
+              <span style={{ fontSize: '0.58rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: '#9ca3af', fontWeight: 600 }}>{s.label}</span>
+              <span style={{ fontSize: '0.85rem', fontWeight: 800, color: s.color }}>{s.value}</span>
             </div>
           ))}
           <button onClick={() => setShowBudget(b => !b)} style={{
-            marginLeft: 'auto', padding: '5px 12px',
-            background: showBudget ? '#eff6ff' : '#fff',
-            border: `1px solid ${showBudget ? '#1d4ed8' : '#e2e6eb'}`,
-            borderRadius: 6, color: showBudget ? '#1d4ed8' : '#6b7280',
-            cursor: 'pointer', fontSize: '0.78rem', fontWeight: 500,
+            marginLeft: 'auto', padding: '4px 10px',
+            background: showBudget ? '#ebf0fd' : '#fff',
+            border: `1px solid ${showBudget ? '#1a56db' : '#e4e7ec'}`,
+            borderRadius: 5, color: showBudget ? '#1a56db' : '#6b7280',
+            cursor: 'pointer', fontSize: '0.76rem', fontWeight: 500,
           }}>
             Budget Ledger
           </button>
@@ -126,12 +125,10 @@ export default function TeamPage() {
 
         {/* Notes */}
         {notes.length > 0 && (
-          <div style={{ marginTop: 12, padding: '10px 14px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 7 }}>
-            <div style={{ fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: '#92400e', marginBottom: 6 }}>
-              📝 Notes
-            </div>
+          <div style={{ marginTop: 10, padding: '8px 12px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 6 }}>
+            <div style={{ fontSize: '0.6rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: '#92400e', marginBottom: 5 }}>📝 Notes</div>
             {notes.map((n, i) => (
-              <div key={n.id} style={{ fontSize: '0.83rem', color: '#374151', lineHeight: 1.5, borderTop: i > 0 ? '1px solid #fde68a' : 'none', paddingTop: i > 0 ? 5 : 0, marginTop: i > 0 ? 5 : 0 }}>
+              <div key={n.id} style={{ fontSize: '0.82rem', color: '#374151', lineHeight: 1.5, borderTop: i > 0 ? '1px solid #fde68a' : 'none', paddingTop: i > 0 ? 4 : 0, marginTop: i > 0 ? 4 : 0 }}>
                 {n.note}
               </div>
             ))}
@@ -140,8 +137,8 @@ export default function TeamPage() {
 
         {/* Budget ledger */}
         {showBudget && (
-          <div style={{ marginTop: 12, background: '#f8f9fb', borderRadius: 7, padding: '12px 16px', border: '1px solid #e2e6eb' }}>
-            <div style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#9ca3af', marginBottom: 8 }}>
+          <div style={{ marginTop: 10, background: '#f6f7f9', borderRadius: 6, padding: '10px 14px', border: '1px solid #e4e7ec' }}>
+            <div style={{ fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#9ca3af', marginBottom: 7 }}>
               Budget Ledger — {year}
             </div>
             {budget.transactions.length === 0
@@ -149,16 +146,16 @@ export default function TeamPage() {
               : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                   {budget.transactions.map((t, i) => (
-                    <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'baseline' }}>
-                      <span style={{ fontSize: '0.83rem', fontWeight: 700, minWidth: 52, color: t.amount >= 0 ? '#15803d' : '#dc2626', fontVariantNumeric: 'tabular-nums' }}>
+                    <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'baseline' }}>
+                      <span style={{ fontSize: '0.82rem', fontWeight: 700, minWidth: 48, color: t.amount >= 0 ? '#166534' : '#b91c1c', fontVariantNumeric: 'tabular-nums' }}>
                         {t.amount >= 0 ? '+' : ''}{t.amount}
                       </span>
-                      <span style={{ fontSize: '0.83rem', color: '#374151', flex: 1 }}>{t.note ?? ''}</span>
+                      <span style={{ fontSize: '0.82rem', color: '#374151', flex: 1 }}>{t.note ?? ''}</span>
                     </div>
                   ))}
-                  <div style={{ borderTop: '1px solid #e2e6eb', marginTop: 4, paddingTop: 8, display: 'flex', gap: 12 }}>
-                    <span style={{ fontSize: '0.9rem', fontWeight: 800, minWidth: 52, color: '#111827' }}>${budget.currentBudget}</span>
-                    <span style={{ fontSize: '0.83rem', color: '#9ca3af' }}>Total budget</span>
+                  <div style={{ borderTop: '1px solid #e4e7ec', marginTop: 3, paddingTop: 7, display: 'flex', gap: 10 }}>
+                    <span style={{ fontSize: '0.88rem', fontWeight: 800, minWidth: 48, color: '#0f1117' }}>${budget.currentBudget}</span>
+                    <span style={{ fontSize: '0.82rem', color: '#9ca3af' }}>Total budget</span>
                   </div>
                 </div>
               )
@@ -167,13 +164,13 @@ export default function TeamPage() {
         )}
       </div>
 
-      {/* Roster card */}
+      {/* Roster */}
       <div className="card" style={{ overflow: 'hidden' }}>
+        <RosterSection title={`Major League (${mlb.length})`}  players={mlb}     accentColor="#166534" defaultOpen />
+        <RosterSection title={`Minor League (${milb.length})`} players={milb}    accentColor="#1a56db" defaultOpen />
+        <RosterSection title={`Injured List (${il.length})`}   players={il}      accentColor="#b45309" defaultOpen />
+        <RosterSection title={`Dropped — $${deadMoney} dead (${dropped.length})`} players={dropped} accentColor="#b91c1c" defaultOpen />
       </div>
-
-      <p style={{ marginTop: 10, fontSize: '0.72rem', color: '#9ca3af', textAlign: 'center' }}>
-        Click any player to see their full roster history
-      </p>
     </div>
   )
 }
