@@ -146,6 +146,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true })
   }
 
+  // ── Rename player ──────────────────────────────────────────────────────────
+  if (action === 'rename_player') {
+    const { oldName, newName } = body
+    if (!oldName || !newName) return NextResponse.json({ error: 'oldName and newName required' }, { status: 400 })
+    const players = await sql`SELECT id FROM players WHERE name = ${oldName}`
+    if (!players.length) return NextResponse.json({ error: `Player not found: "${oldName}"` }, { status: 404 })
+    await sql`UPDATE players SET name = ${newName} WHERE name = ${oldName}`
+    return NextResponse.json({ ok: true })
+  }
+
   // ── Delete team note ───────────────────────────────────────────────────────
   if (action === 'delete_note') {
     const { noteId } = body

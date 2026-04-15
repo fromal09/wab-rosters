@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import { MANAGERS, CURRENT_YEAR } from '@/lib/constants'
 
-type Tab = 'trade' | 'add-drop' | 'budget' | 'il' | 'salary' | 'franchise' | 'keeper-slots' | 'notes'
+type Tab = 'trade' | 'add-drop' | 'budget' | 'il' | 'salary' | 'franchise' | 'keeper-slots' | 'notes' | 'rename'
 
 // ── Light-mode form primitives ────────────────────────────────────────────────
 const inputStyle = {
@@ -422,6 +422,44 @@ function NotesTab() {
   )
 }
 
+function RenameTab() {
+  const [oldName, setOldName] = useState('')
+  const [newName, setNewName] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
+
+  async function submit() {
+    if (!oldName.trim() || !newName.trim()) return setMsg({ ok: false, text: 'Both fields required' })
+    if (oldName.trim() === newName.trim()) return setMsg({ ok: false, text: 'Names are identical' })
+    setLoading(true); setMsg(null)
+    const json = await adminPost({ action: 'rename_player', oldName: oldName.trim(), newName: newName.trim() })
+    if (json.ok) {
+      setMsg({ ok: true, text: `Renamed "${oldName.trim()}" → "${newName.trim()}"` })
+      setOldName(''); setNewName('')
+    } else {
+      setMsg({ ok: false, text: json.error })
+    }
+    setLoading(false)
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <p style={{ margin: 0, fontSize: '0.83rem', color: '#6b7280' }}>
+        Correct a player name typo. Updates the name everywhere — all roster slots and transactions.
+      </p>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', gap: 10, alignItems: 'flex-end' }}>
+        <Input label="Current name (exact)" value={oldName} onChange={setOldName} placeholder="e.g. Jaccob Junis" />
+        <div style={{ paddingBottom: 9, color: '#9ca3af', fontSize: '1rem' }}>→</div>
+        <Input label="Corrected name" value={newName} onChange={setNewName} placeholder="e.g. Jacob Junis" />
+      </div>
+      <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+        <Btn label="Rename Player" onClick={submit} loading={loading} color="#7c3aed" />
+        <Status msg={msg} />
+      </div>
+    </div>
+  )
+}
+
 // ── Login ────────────────────────────────────────────────────────────────────
 function LoginScreen({ onLogin }: { onLogin: () => void }) {
   const [password, setPassword] = useState(''); const [error, setError] = useState(''); const [loading, setLoading] = useState(false)
@@ -473,6 +511,7 @@ export default function AdminPage() {
     { id: 'il',           label: '🏥 IL Move' },
     { id: 'salary',       label: '✏️ Salary' },
     { id: 'franchise',    label: '★ Franchise' },
+    { id: 'rename',       label: '✏️ Rename' },
     { id: 'notes',        label: '📝 Notes' },
   ]
 
@@ -510,6 +549,7 @@ export default function AdminPage() {
         {tab === 'il'           && <ILTab />}
         {tab === 'salary'       && <SalaryTab />}
         {tab === 'franchise'    && <FranchiseTab />}
+        {tab === 'rename'       && <RenameTab />}
         {tab === 'notes'        && <NotesTab />}
       </div>
     </div>
