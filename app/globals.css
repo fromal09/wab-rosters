@@ -119,3 +119,4 @@ body {
   color: var(--text-primary);
   margin-top: 2px;
 }
+.team-card:hover { border-color: #4f7ef0 !important; background: #1e2235 !important; }
