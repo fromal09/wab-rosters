@@ -1,0 +1,121 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #0f1117;
+  --bg-card: #1a1d27;
+  --bg-card-hover: #22263a;
+  --border: #2e3347;
+  --text-primary: #e8eaf0;
+  --text-secondary: #8b92a8;
+  --text-muted: #5a6075;
+  --accent: #4f7ef0;
+  --accent-hover: #6b95f5;
+  --green: #3ecf8e;
+  --red: #f0614f;
+  --yellow: #f0c040;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+  min-height: 100vh;
+}
+
+/* Franchise player — italic serif with faint shimmer */
+.franchise-player {
+  font-style: italic;
+  font-weight: 600;
+  font-family: Georgia, 'Times New Roman', serif;
+  letter-spacing: 0.01em;
+}
+
+/* Service year badge */
+.svc-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0 4px;
+}
+
+/* Scrollable roster table */
+.roster-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+.roster-table th {
+  text-align: left;
+  padding: 6px 10px;
+  background: #1e2235;
+  color: var(--text-secondary);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+.roster-table td {
+  padding: 5px 10px;
+  border-bottom: 1px solid rgba(46,51,71,0.5);
+  vertical-align: middle;
+}
+.roster-table tr:hover td {
+  background: rgba(79,126,240,0.04);
+}
+
+/* Section header rows */
+.section-header {
+  background: #1e2235;
+  padding: 8px 12px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-secondary);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+/* Cards */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+/* Stat pill */
+.stat-pill {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 12px;
+  background: #1e2235;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  min-width: 70px;
+}
+.stat-pill .label {
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+.stat-pill .value {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-top: 2px;
+}
