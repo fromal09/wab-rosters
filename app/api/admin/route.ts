@@ -31,11 +31,12 @@ export async function POST(request: NextRequest) {
   try { await assertCommissioner() }
   catch { return NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) }
 
-  const body = await request.json()
-  const { action } = body
-  const sql = db()
-  const year: number = body.year ?? CURRENT_YEAR
-  const now = new Date().toISOString()
+  try {
+    const body = await request.json()
+    const { action } = body
+    const sql = db()
+    const year: number = body.year ?? CURRENT_YEAR
+    const now = new Date().toISOString()
 
   if (action === 'drop') {
     const { managerSlug, playerName, note } = body
@@ -176,5 +177,10 @@ export async function POST(request: NextRequest) {
   }
 
   return NextResponse.json({ error: 'Unknown action' }, { status: 400 })
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e)
+    console.error('Admin route error:', msg)
+    return NextResponse.json({ error: msg }, { status: 500 })
+  }
 }
 // This file is appended — keeper_slots and add_note actions added below
