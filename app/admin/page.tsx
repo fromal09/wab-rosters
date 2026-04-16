@@ -81,11 +81,21 @@ function Status({ msg }: { msg: { ok: boolean; text: string } | null }) {
 }
 
 async function adminPost(body: object) {
-  const res = await fetch('/api/admin', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  })
-  return res.json()
+  try {
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 15000)
+    const res = await fetch('/api/admin', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body), signal: controller.signal,
+    })
+    clearTimeout(timeout)
+    const json = await res.json()
+    if (!res.ok && json.ok !== false) return { ok: false, error: json.error ?? `HTTP ${res.status}` }
+    return json
+  } catch (e: unknown) {
+    const msg = e instanceof Error && e.name === 'AbortError' ? 'Request timed out' : String(e)
+    return { ok: false, error: msg }
+  }
 }
 
 // ── Tabs ──────────────────────────────────────────────────────────────────────

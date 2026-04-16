@@ -148,11 +148,13 @@ export async function POST(request: NextRequest) {
 
   // ── Rename player ──────────────────────────────────────────────────────────
   if (action === 'rename_player') {
-    const { oldName, newName } = body
-    if (!oldName || !newName) return NextResponse.json({ error: 'oldName and newName required' }, { status: 400 })
-    const players = await sql`SELECT id FROM players WHERE name = ${oldName}`
-    if (!players.length) return NextResponse.json({ error: `Player not found: "${oldName}"` }, { status: 404 })
-    await sql`UPDATE players SET name = ${newName} WHERE name = ${oldName}`
+    const oldName = (body.oldName ?? '').trim()
+    const newName = (body.newName ?? '').trim()
+    if (!oldName || !newName) return NextResponse.json({ error: 'Both names required' }, { status: 400 })
+    // Case-insensitive search so minor capitalisation differences don't block the rename
+    const players = await sql`SELECT id, name FROM players WHERE LOWER(name) = LOWER(${oldName})`
+    if (!players.length) return NextResponse.json({ error: `No player found matching "${oldName}". Check spelling exactly as it appears on the roster.` }, { status: 404 })
+    await sql`UPDATE players SET name = ${newName} WHERE LOWER(name) = LOWER(${oldName})`
     return NextResponse.json({ ok: true })
   }
 
