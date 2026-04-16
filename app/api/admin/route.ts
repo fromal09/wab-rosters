@@ -152,10 +152,26 @@ export async function POST(request: NextRequest) {
     const oldName = (body.oldName ?? '').trim()
     const newName = (body.newName ?? '').trim()
     if (!oldName || !newName) return NextResponse.json({ error: 'Both names required' }, { status: 400 })
-    // Case-insensitive search so minor capitalisation differences don't block the rename
-    const players = await sql`SELECT id, name FROM players WHERE LOWER(name) = LOWER(${oldName})`
-    if (!players.length) return NextResponse.json({ error: `No player found matching "${oldName}". Check spelling exactly as it appears on the roster.` }, { status: 404 })
-    await sql`UPDATE players SET name = ${newName} WHERE LOWER(name) = LOWER(${oldName})`
+
+    const oldPlayers = await sql`SELECT id FROM players WHERE LOWER(name) = LOWER(${oldName})`
+    if (!oldPlayers.length) return NextResponse.json({ error: `No player found matching "${oldName}"` }, { status: 404 })
+    const oldId = oldPlayers[0].id as string
+
+    // Check if the target name already exists (merge case)
+    const newPlayers = await sql`SELECT id FROM players WHERE LOWER(name) = LOWER(${newName})`
+
+    if (newPlayers.length) {
+      // Target already exists — merge by reassigning all references to the existing record
+      const newId = newPlayers[0].id as string
+      if (oldId === newId) return NextResponse.json({ error: 'Same player record — nothing to do' }, { status: 400 })
+      await sql`UPDATE roster_slots  SET player_id = ${newId} WHERE player_id = ${oldId}`
+      await sql`UPDATE transactions  SET player_id = ${newId} WHERE player_id = ${oldId}`
+      await sql`DELETE FROM players WHERE id = ${oldId}`
+    } else {
+      // Simple rename — no conflict
+      await sql`UPDATE players SET name = ${newName} WHERE id = ${oldId}`
+    }
+
     return NextResponse.json({ ok: true })
   }
 
