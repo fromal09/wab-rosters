@@ -269,30 +269,42 @@ function KeeperSlotsTab() {
   )
 }
 
-function ILTab() {
-  const [manager, setManager] = useState(''); const [player, setPlayer] = useState(''); const [toSlot, setToSlot] = useState('IL')
+function MovePlayerTab() {
+  const [manager, setManager] = useState(''); const [player, setPlayer] = useState('')
+  const [fromSlot, setFromSlot] = useState('MLB'); const [toSlot, setToSlot] = useState('IL')
   const [loading, setLoading] = useState(false); const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
+  const SLOTS = ['MLB', 'MiLB', 'IL']
   async function submit() {
     if (!manager || !player) return setMsg({ ok: false, text: 'Fill in all fields' })
+    if (fromSlot === toSlot) return setMsg({ ok: false, text: 'From and To slots are the same' })
     setLoading(true); setMsg(null)
-    const json = await adminPost({ action: 'il_move', year: CURRENT_YEAR, managerSlug: manager, playerName: player, toSlot })
-    setMsg(json.ok ? { ok: true, text: `Moved to ${toSlot}` } : { ok: false, text: json.error })
+    const json = await adminPost({ action: 'il_move', year: CURRENT_YEAR, managerSlug: manager, playerName: player.trim(), toSlot })
+    setMsg(json.ok ? { ok: true, text: `Moved ${player.trim()} → ${toSlot}` } : { ok: false, text: json.error })
     if (json.ok) setPlayer('')
     setLoading(false)
   }
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+      <p style={{ margin: 0, fontSize: '0.83rem', color: '#6b7280' }}>Move a player between MLB, MiLB, and IL roster slots.</p>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
         <ManagerSelect label="Manager" value={manager} onChange={setManager} />
         <Input label="Player Name" value={player} onChange={setPlayer} placeholder="Exact name…" />
-        <Field label="Move To">
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', gap: 10, alignItems: 'flex-end' }}>
+        <Field label="From Slot">
+          <select value={fromSlot} onChange={e => setFromSlot(e.target.value)} style={{ ...inputStyle, cursor: 'pointer' }}>
+            {SLOTS.map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
+        </Field>
+        <div style={{ paddingBottom: 9, color: '#9ca3af', fontSize: '1.1rem', textAlign: 'center' }}>→</div>
+        <Field label="To Slot">
           <select value={toSlot} onChange={e => setToSlot(e.target.value)} style={{ ...inputStyle, cursor: 'pointer' }}>
-            {['IL', 'MLB', 'MiLB'].map(s => <option key={s} value={s}>{s}</option>)}
+            {SLOTS.filter(s => s !== fromSlot).map(s => <option key={s} value={s}>{s}</option>)}
           </select>
         </Field>
       </div>
       <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-        <Btn label="Move Player" onClick={submit} loading={loading} color="#d97706" />
+        <Btn label="Move Player" onClick={submit} loading={loading} color="#b45309" />
         <Status msg={msg} />
       </div>
     </div>
@@ -518,7 +530,7 @@ export default function AdminPage() {
     { id: 'add-drop',     label: '+ Add / Drop' },
     { id: 'budget',       label: '$ Budget' },
     { id: 'keeper-slots', label: '🎟 Keeper Slots' },
-    { id: 'il',           label: '🏥 IL Move' },
+    { id: 'il',           label: '↔ Move Player' },
     { id: 'salary',       label: '✏️ Salary' },
     { id: 'franchise',    label: '★ Franchise' },
     { id: 'rename',       label: '✏️ Rename' },
@@ -556,7 +568,7 @@ export default function AdminPage() {
         {tab === 'add-drop'     && <AddDropTab />}
         {tab === 'budget'       && <BudgetTab />}
         {tab === 'keeper-slots' && <KeeperSlotsTab />}
-        {tab === 'il'           && <ILTab />}
+        {tab === 'il'           && <MovePlayerTab />}
         {tab === 'salary'       && <SalaryTab />}
         {tab === 'franchise'    && <FranchiseTab />}
         {tab === 'rename'       && <RenameTab />}

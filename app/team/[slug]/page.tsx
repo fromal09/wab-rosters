@@ -144,18 +144,32 @@ export default function TeamPage() {
             {budget.transactions.length === 0
               ? <div style={{ color: '#9ca3af', fontSize: '0.82rem' }}>No entries.</div>
               : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  {budget.transactions.map((t, i) => (
-                    <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'baseline' }}>
-                      <span style={{ fontSize: '0.82rem', fontWeight: 700, minWidth: 48, color: t.amount >= 0 ? '#166534' : '#b91c1c', fontVariantNumeric: 'tabular-nums' }}>
-                        {t.amount >= 0 ? '+' : ''}{t.amount}
-                      </span>
-                      <span style={{ fontSize: '0.82rem', color: '#374151', flex: 1 }}>{t.note ?? ''}</span>
-                    </div>
-                  ))}
-                  <div style={{ borderTop: '1px solid #e4e7ec', marginTop: 3, paddingTop: 7, display: 'flex', gap: 10 }}>
-                    <span style={{ fontSize: '0.88rem', fontWeight: 800, minWidth: 48, color: '#0f1117' }}>${budget.currentBudget}</span>
-                    <span style={{ fontSize: '0.82rem', color: '#9ca3af' }}>Total budget</span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                  {budget.transactions.map((t, i) => {
+                    const isMarker = t.amount === 0 && t.note?.includes('STARTING BUDGET')
+                    if (isMarker) return (
+                      <div key={i} style={{
+                        margin: '3px 0', padding: '6px 10px',
+                        background: '#1a56db', borderRadius: 5,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}>
+                        <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#fff', letterSpacing: '0.03em', textAlign: 'center' }}>
+                          {t.note}
+                        </span>
+                      </div>
+                    )
+                    return (
+                      <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'baseline', padding: '1px 0' }}>
+                        <span style={{ fontSize: '0.81rem', fontWeight: 700, minWidth: 46, color: t.amount > 0 ? '#166534' : '#b91c1c', fontVariantNumeric: 'tabular-nums' }}>
+                          {t.amount > 0 ? '+' : ''}{t.amount}
+                        </span>
+                        <span style={{ fontSize: '0.81rem', color: '#374151', flex: 1 }}>{t.note ?? ''}</span>
+                      </div>
+                    )
+                  })}
+                  <div style={{ borderTop: '1px solid #e4e7ec', marginTop: 4, paddingTop: 6, display: 'flex', gap: 10 }}>
+                    <span style={{ fontSize: '0.88rem', fontWeight: 800, minWidth: 46, color: '#0f1117' }}>${budget.currentBudget}</span>
+                    <span style={{ fontSize: '0.82rem', color: '#9ca3af' }}>Current budget</span>
                   </div>
                 </div>
               )
