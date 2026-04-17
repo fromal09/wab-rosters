@@ -292,7 +292,11 @@ function MovePlayerTab() {
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', gap: 10, alignItems: 'flex-end' }}>
         <Field label="From Slot">
-          <select value={fromSlot} onChange={e => setFromSlot(e.target.value)} style={{ ...inputStyle, cursor: 'pointer' }}>
+          <select value={fromSlot} onChange={e => {
+            const next = e.target.value
+            setFromSlot(next)
+            if (toSlot === next) setToSlot(SLOTS.find(s => s !== next) ?? 'MLB')
+          }} style={{ ...inputStyle, cursor: 'pointer' }}>
             {SLOTS.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
         </Field>
