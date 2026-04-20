@@ -159,54 +159,91 @@ function AddDropTab() {
   const [mode, setMode] = useState<'add' | 'drop'>('drop')
   const [manager, setManager] = useState(''); const [player, setPlayer] = useState('')
   const [salary, setSalary] = useState(''); const [slotType, setSlotType] = useState('MLB')
+  const [position, setPosition] = useState('')
   const [note, setNote] = useState(''); const [loading, setLoading] = useState(false)
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
+
+  const QUICK_POSITIONS = ['SP','RP','C','1B','2B','3B','SS','LF','CF','RF','OF','DH']
+
   async function submit() {
     if (!manager || !player) return setMsg({ ok: false, text: 'Fill in all required fields' })
     setLoading(true); setMsg(null)
-    const body = mode === 'drop'
-      ? { action: 'drop', year: CURRENT_YEAR, managerSlug: manager, playerName: player, note: note || null }
-      : { action: 'claim', year: CURRENT_YEAR, managerSlug: manager, playerName: player, salary: parseInt(salary) || 0, slotType, note: note || null }
-    const json = await adminPost(body)
-    if (json.ok) {
-      setMsg({ ok: true, text: mode === 'drop' ? `Dropped. Dead money: $${json.dead_money}` : 'Player added!' })
-      setPlayer(''); setSalary(''); setNote('')
-    } else setMsg({ ok: false, text: json.error })
+    if (mode === 'drop') {
+      const json = await adminPost({ action: 'drop', year: CURRENT_YEAR, managerSlug: manager, playerName: player, note: note || null })
+      if (json.ok) { setMsg({ ok: true, text: `Dropped. Dead money: $${json.dead_money}` }); setPlayer(''); setNote('') }
+      else setMsg({ ok: false, text: json.error })
+    } else {
+      const json = await adminPost({ action: 'claim', year: CURRENT_YEAR, managerSlug: manager, playerName: player, salary: parseInt(salary) || 0, slotType, note: note || null })
+      if (json.ok) {
+        if (position.trim()) await adminPost({ action: 'set_position', playerName: player.trim(), position: position.trim() })
+        setMsg({ ok: true, text: `Added ${player.trim()}${position ? ` (${position})` : ''}!` })
+        setPlayer(''); setSalary(''); setNote(''); setPosition('')
+      } else setMsg({ ok: false, text: json.error })
+    }
     setLoading(false)
   }
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       <div style={{ display: 'flex', gap: 8 }}>
         {(['drop', 'add'] as const).map(m => (
           <button key={m} onClick={() => setMode(m)} style={{
             padding: '6px 16px', borderRadius: 6, border: '1px solid',
-            borderColor: mode === m ? '#1d4ed8' : '#e2e6eb',
+            borderColor: mode === m ? '#1a56db' : '#e4e7ec',
             background: mode === m ? '#eff6ff' : '#fff',
-            color: mode === m ? '#1d4ed8' : '#6b7280',
+            color: mode === m ? '#1a56db' : '#6b7280',
             cursor: 'pointer', fontWeight: mode === m ? 700 : 400, fontSize: '0.85rem',
           }}>
             {m === 'drop' ? 'Drop Player' : 'Add Player'}
           </button>
         ))}
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: mode === 'add' ? '1fr 1fr 1fr' : '1fr 1fr', gap: 12 }}>
-        <ManagerSelect label="Manager" value={manager} onChange={setManager} />
-        <Input label="Player Name" value={player} onChange={setPlayer} placeholder="Exact name…" />
-        {mode === 'add' && <Input label="Salary ($)" value={salary} onChange={setSalary} type="number" placeholder="1" />}
-      </div>
-      {mode === 'add' && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 12 }}>
-          <Field label="Roster Slot">
-            <select value={slotType} onChange={e => setSlotType(e.target.value)} style={{ ...inputStyle, cursor: 'pointer' }}>
-              {['MLB', 'MiLB', 'IL'].map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
-          </Field>
-          <Input label="Note" value={note} onChange={setNote} placeholder="Free agent pickup, waivers, etc." />
-        </div>
+
+      {mode === 'drop' && (
+        <>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <ManagerSelect label="Manager" value={manager} onChange={setManager} />
+            <Input label="Player Name" value={player} onChange={setPlayer} placeholder="Exact name…" />
+          </div>
+          <Input label="Note (optional)" value={note} onChange={setNote} placeholder="Reason for drop" />
+        </>
       )}
-      {mode === 'drop' && <Input label="Note (optional)" value={note} onChange={setNote} placeholder="Reason for drop" />}
+
+      {mode === 'add' && (
+        <>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+            <ManagerSelect label="Manager" value={manager} onChange={setManager} />
+            <Input label="Player Name" value={player} onChange={setPlayer} placeholder="Exact name…" />
+            <Input label="Salary ($)" value={salary} onChange={setSalary} type="number" placeholder="1" />
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 2fr', gap: 12 }}>
+            <Field label="Roster Slot">
+              <select value={slotType} onChange={e => setSlotType(e.target.value)} style={{ ...inputStyle, cursor: 'pointer' }}>
+                {['MLB', 'MiLB', 'IL'].map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </Field>
+            <Input label="Position(s)" value={position} onChange={setPosition} placeholder="e.g. SP or 2B,SS" />
+            <Input label="Note" value={note} onChange={setNote} placeholder="Free agent pickup, waivers, etc." />
+          </div>
+          <div>
+            <div style={{ fontSize: '0.65rem', color: '#9ca3af', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5 }}>Quick-pick position</div>
+            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+              {QUICK_POSITIONS.map(pos => (
+                <button key={pos} onClick={() => setPosition(p => p === pos ? '' : pos)} style={{
+                  padding: '3px 9px', borderRadius: 4, border: '1px solid',
+                  borderColor: position === pos ? '#1a56db' : '#e4e7ec',
+                  background: position === pos ? '#eff6ff' : '#f6f7f9',
+                  color: position === pos ? '#1a56db' : '#374151',
+                  fontSize: '0.72rem', fontWeight: 600, cursor: 'pointer',
+                }}>{pos}</button>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+
       <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-        <Btn label={mode === 'drop' ? 'Drop Player' : 'Add Player'} onClick={submit} loading={loading} color={mode === 'drop' ? '#dc2626' : '#15803d'} />
+        <Btn label={mode === 'drop' ? 'Drop Player' : 'Add Player'} onClick={submit} loading={loading} color={mode === 'drop' ? '#dc2626' : '#166534'} />
         <Status msg={msg} />
       </div>
     </div>

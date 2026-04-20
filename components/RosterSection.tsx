@@ -15,15 +15,30 @@ interface Props {
   defaultOpen?: boolean; showFilter?: boolean
 }
 
-// Position filter groups — null means show all
+// Full position filter set
 const FILTERS = [
-  { label: 'All', fn: null },
-  { label: 'SP',  fn: (p: string | null) => !!p && p.split(',').some(x => x.trim() === 'SP') },
-  { label: 'RP',  fn: (p: string | null) => !!p && p.split(',').some(x => x.trim() === 'RP') },
-  { label: 'C',   fn: (p: string | null) => !!p && p.split(',').some(x => x.trim() === 'C') },
-  { label: 'IF',  fn: (p: string | null) => !!p && p.split(',').some(x => ['1B','2B','3B','SS'].includes(x.trim())) },
-  { label: 'OF',  fn: (p: string | null) => !!p && p.split(',').some(x => ['LF','CF','RF','OF'].includes(x.trim())) },
-  { label: 'DH',  fn: (p: string | null) => !!p && p.split(',').some(x => x.trim() === 'DH') },
+  { label: 'All',      fn: null },
+  // Pitchers
+  { label: 'SP',       fn: (p: string|null) => !!p && p.split(',').some(x => x.trim()==='SP') },
+  { label: 'RP',       fn: (p: string|null) => !!p && p.split(',').some(x => x.trim()==='RP') },
+  { label: 'Pitchers', fn: (p: string|null) => !!p && p.split(',').some(x => ['SP','RP','P'].includes(x.trim())) },
+  // Catchers
+  { label: 'C',        fn: (p: string|null) => !!p && p.split(',').some(x => x.trim()==='C') },
+  // Infield
+  { label: '1B',       fn: (p: string|null) => !!p && p.split(',').some(x => x.trim()==='1B') },
+  { label: '2B',       fn: (p: string|null) => !!p && p.split(',').some(x => x.trim()==='2B') },
+  { label: '3B',       fn: (p: string|null) => !!p && p.split(',').some(x => x.trim()==='3B') },
+  { label: 'SS',       fn: (p: string|null) => !!p && p.split(',').some(x => x.trim()==='SS') },
+  { label: 'MI',       fn: (p: string|null) => !!p && p.split(',').some(x => ['2B','SS'].includes(x.trim())) },
+  { label: 'CI',       fn: (p: string|null) => !!p && p.split(',').some(x => ['1B','3B'].includes(x.trim())) },
+  // Outfield
+  { label: 'LF',       fn: (p: string|null) => !!p && p.split(',').some(x => x.trim()==='LF') },
+  { label: 'CF',       fn: (p: string|null) => !!p && p.split(',').some(x => x.trim()==='CF') },
+  { label: 'RF',       fn: (p: string|null) => !!p && p.split(',').some(x => x.trim()==='RF') },
+  { label: 'OF',       fn: (p: string|null) => !!p && p.split(',').some(x => ['LF','CF','RF','OF'].includes(x.trim())) },
+  // Other
+  { label: 'DH',       fn: (p: string|null) => !!p && p.split(',').some(x => x.trim()==='DH') },
+  { label: 'Hitters',  fn: (p: string|null) => !!p && p.split(',').some(x => ['C','1B','2B','3B','SS','LF','CF','RF','OF','DH'].includes(x.trim())) },
 ]
 
 export default function RosterSection({ title, players, accentColor = '#1a56db', defaultOpen = true, showFilter = false }: Props) {
@@ -86,21 +101,26 @@ export default function RosterSection({ title, players, accentColor = '#1a56db',
 
       {/* Position filter pills — only on non-dropped sections when showFilter=true */}
       {open && showFilter && !isDropped && (
-        <div style={{ display: 'flex', gap: 4, padding: '6px 10px', background: '#f6f7f9', borderBottom: '1px solid #e4e7ec', flexWrap: 'wrap' }}>
-          {FILTERS.map(f => {
+        <div style={{ display: 'flex', gap: 3, padding: '6px 10px', background: '#f6f7f9', borderBottom: '1px solid #e4e7ec', flexWrap: 'wrap', alignItems: 'center' }}>
+          {FILTERS.map((f, i) => {
             const count = f.fn ? players.filter(p => f.fn!(p.position ?? null)).length : players.length
             const active = activeFilter === f.label
+            // Add visual separator before groups
+            const sep = [1, 3, 4, 9, 11, 15, 16].includes(i)
             return (
-              <button key={f.label} onClick={() => setActiveFilter(f.label)} style={{
-                padding: '2px 8px', borderRadius: 4, border: '1px solid',
-                borderColor: active ? accentColor : '#e4e7ec',
-                background: active ? accentColor : '#fff',
-                color: active ? '#fff' : '#6b7280',
-                fontSize: '0.65rem', fontWeight: active ? 700 : 500,
-                cursor: 'pointer', lineHeight: '1.6',
-              }}>
-                {f.label} {count > 0 && !active && <span style={{ color: '#9ca3af' }}>({count})</span>}
-              </button>
+              <span key={f.label} style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                {sep && <span style={{ width: 1, height: 12, background: '#d1d5db', margin: '0 2px' }} />}
+                <button onClick={() => setActiveFilter(f.label)} style={{
+                  padding: '2px 7px', borderRadius: 4, border: '1px solid',
+                  borderColor: active ? accentColor : '#e4e7ec',
+                  background: active ? accentColor : '#fff',
+                  color: active ? '#fff' : '#6b7280',
+                  fontSize: '0.62rem', fontWeight: active ? 700 : 500,
+                  cursor: 'pointer', lineHeight: '1.6', whiteSpace: 'nowrap',
+                }}>
+                  {f.label}{!active && count > 0 && <span style={{ color: active ? '#fff' : '#9ca3af', marginLeft: 2 }}>({count})</span>}
+                </button>
+              </span>
             )
           })}
         </div>
