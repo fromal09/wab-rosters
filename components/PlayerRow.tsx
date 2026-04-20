@@ -8,6 +8,7 @@ interface Props {
   isFranchisePlayer: boolean | string
   deadMoney?: number | null
   position?: string | null
+  onClick?: () => void
 }
 
 function posStyle(pos: string): { bg: string; color: string } {
@@ -20,15 +21,13 @@ function posStyle(pos: string): { bg: string; color: string } {
   return { bg: '#f6f7f9', color: '#6b7280' }
 }
 
-// Strip trailing ",OF" since it's implied by LF/CF/RF — keeps display compact
 function formatPos(pos: string): string {
   const parts = pos.split(',').map(p => p.trim())
-  // If we have outfield positions AND OF, drop the redundant OF
   const hasSpecificOF = parts.some(p => ['LF','CF','RF'].includes(p))
   return (hasSpecificOF ? parts.filter(p => p !== 'OF') : parts).join(',')
 }
 
-export default function PlayerRow({ name, serviceYear, salary, slotType, isFranchisePlayer, deadMoney, position }: Props) {
+export default function PlayerRow({ name, serviceYear, salary, slotType, isFranchisePlayer, deadMoney, position, onClick }: Props) {
   const isDropped = slotType === 'dropped'
   const keeperPrice = isDropped ? null : getKeeperPrice(salary)
   const svcColor = getServiceYearColor(serviceYear)
@@ -39,7 +38,10 @@ export default function PlayerRow({ name, serviceYear, salary, slotType, isFranc
   const pStyle = displayPos ? posStyle(position!) : null
 
   return (
-    <tr style={{ background: rowBg }}>
+    <tr
+      onClick={onClick}
+      style={{ background: rowBg, cursor: onClick ? 'pointer' : 'default' }}
+    >
       <td style={{ padding: 0, width: 5, background: svcColor, opacity: isDropped ? 0.35 : 1 }} />
       <td style={{ padding: '3px 8px 3px 7px' }}>
         <span className={isFranchise ? 'franchise-player' : ''} style={{
@@ -57,8 +59,7 @@ export default function PlayerRow({ name, serviceYear, salary, slotType, isFranc
             display: 'inline-block', fontSize: '0.57rem', fontWeight: 700,
             padding: '1px 5px', borderRadius: 3, letterSpacing: '0.01em',
             background: pStyle.bg, color: pStyle.color,
-            border: `1px solid ${pStyle.color}40`,
-            whiteSpace: 'nowrap',
+            border: `1px solid ${pStyle.color}40`, whiteSpace: 'nowrap',
           }}>
             {displayPos}
           </span>

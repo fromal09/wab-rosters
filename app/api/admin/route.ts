@@ -154,6 +154,18 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true })
   }
 
+  // ── Link player to MLBAM ID ────────────────────────────────────────────────
+  if (action === 'link_player') {
+    const playerName = (body.playerName ?? '').trim()
+    const mlbam_id = parseInt(body.mlbam_id)
+    if (!playerName || !mlbam_id) return NextResponse.json({ error: 'playerName and mlbam_id required' }, { status: 400 })
+    const rows = await sql`UPDATE players SET mlbam_id = ${mlbam_id} WHERE LOWER(name) = LOWER(${playerName}) RETURNING id`
+    if (!rows.length) return NextResponse.json({ error: `Player not found: "${playerName}"` }, { status: 404 })
+    // Invalidate cache so fresh data loads
+    await sql`DELETE FROM player_card_cache WHERE mlbam_id = ${mlbam_id}`
+    return NextResponse.json({ ok: true })
+  }
+
   // ── Set player position ────────────────────────────────────────────────────
   if (action === 'set_position') {
     const playerName = (body.playerName ?? '').trim()

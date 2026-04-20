@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import TeamCard from '@/components/TeamCard'
 import RosterSection from '@/components/RosterSection'
+import PlayerCard from '@/components/PlayerCard'
 import { SVC_COLORS, CURRENT_YEAR } from '@/lib/constants'
 
 type View = 'cards' | 'rosters'
@@ -19,6 +20,7 @@ interface TeamRoster { slug: string; roster: Player[]; loading: boolean }
 export default function LeagueClient({ teams, year }: { teams: TeamSummary[]; year: number }) {
   const [view, setView] = useState<View>('cards')
   const [rosters, setRosters] = useState<Record<string, TeamRoster>>({})
+  const [selectedPlayer, setSelectedPlayer] = useState<string | null>(null)
 
   useEffect(() => {
     if (view !== 'rosters') return
@@ -44,6 +46,7 @@ export default function LeagueClient({ teams, year }: { teams: TeamSummary[]; ye
 
   return (
     <>
+      <PlayerCard playerName={selectedPlayer} onClose={() => setSelectedPlayer(null)} />
       {/* Header */}
       <div style={{ marginBottom: 16, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
         <div>
@@ -158,16 +161,16 @@ export default function LeagueClient({ teams, year }: { teams: TeamSummary[]; ye
                 {!rd?.loading && rd && (
                   <div className="roster-col-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 0 }}>
                     <div style={{ borderRight: '1px solid #f0f2f5' }}>
-                      <RosterSection showFilter title={`MLB (${mlb.length})`}  players={mlb}  accentColor="#166534" defaultOpen />
+                      <RosterSection showFilter title={`MLB (${mlb.length})`}  players={mlb}  accentColor="#166534" defaultOpen onPlayerClick={setSelectedPlayer} />
                     </div>
                     <div style={{ borderRight: '1px solid #f0f2f5' }}>
-                      <RosterSection showFilter title={`MiLB (${milb.length})`} players={milb} accentColor="#1a56db" defaultOpen />
-                      <RosterSection showFilter title={`IL (${il.length})`}     players={il}   accentColor="#b45309" defaultOpen />
+                      <RosterSection showFilter title={`MiLB (${milb.length})`} players={milb} accentColor="#1a56db" defaultOpen onPlayerClick={setSelectedPlayer} />
+                      <RosterSection showFilter title={`IL (${il.length})`}     players={il}   accentColor="#b45309" defaultOpen onPlayerClick={setSelectedPlayer} />
                     </div>
                     <div>
                       <RosterSection
                         title={`Dropped — $${deadMoney} dead (${dropped.length})`}
-                        players={dropped} accentColor="#b91c1c" defaultOpen
+                        players={dropped} accentColor="#b91c1c" defaultOpen onPlayerClick={setSelectedPlayer}
                       />
                     </div>
                   </div>

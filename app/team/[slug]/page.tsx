@@ -3,6 +3,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import RosterSection from '@/components/RosterSection'
+import PlayerCard from '@/components/PlayerCard'
 
 interface Player {
   player_name: string; service_year: number; salary: number
@@ -27,6 +28,7 @@ export default function TeamPage() {
   const [loading, setLoading] = useState(true)
   const [showBudget, setShowBudget] = useState(false)
   const [year, setYear] = useState(2026)
+  const [selectedPlayer, setSelectedPlayer] = useState<string | null>(null)
 
   const fetchTeam = useCallback(async (yr: number) => {
     setLoading(true)
@@ -180,11 +182,12 @@ export default function TeamPage() {
 
       {/* Roster */}
       <div className="card" style={{ overflow: 'hidden' }}>
-        <RosterSection showFilter title={`Major League (${mlb.length})`}  players={mlb}     accentColor="#166534" defaultOpen />
-        <RosterSection showFilter title={`Minor League (${milb.length})`} players={milb}    accentColor="#1a56db" defaultOpen />
-        <RosterSection showFilter title={`Injured List (${il.length})`}   players={il}      accentColor="#b45309" defaultOpen />
-        <RosterSection title={`Dropped — $${deadMoney} dead (${dropped.length})`} players={dropped} accentColor="#b91c1c" defaultOpen />
+        <RosterSection showFilter title={`Major League (${mlb.length})`}  players={mlb}     accentColor="#166534" defaultOpen onPlayerClick={setSelectedPlayer} />
+        <RosterSection showFilter title={`Minor League (${milb.length})`} players={milb}    accentColor="#1a56db" defaultOpen onPlayerClick={setSelectedPlayer} />
+        <RosterSection showFilter title={`Injured List (${il.length})`}   players={il}      accentColor="#b45309" defaultOpen onPlayerClick={setSelectedPlayer} />
+        <RosterSection title={`Dropped — $${deadMoney} dead (${dropped.length})`} players={dropped} accentColor="#b91c1c" defaultOpen onPlayerClick={setSelectedPlayer} />
       </div>
+      <PlayerCard playerName={selectedPlayer} onClose={() => setSelectedPlayer(null)} />
     </div>
   )
 }

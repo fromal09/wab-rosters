@@ -12,7 +12,7 @@ type SortKey = 'salary' | 'service_year' | 'name' | 'keeper' | 'position'
 
 interface Props {
   title: string; players: Player[]; accentColor?: string
-  defaultOpen?: boolean; showFilter?: boolean
+  defaultOpen?: boolean; showFilter?: boolean; onPlayerClick?: (name: string) => void
 }
 
 // Full position filter set
@@ -41,7 +41,7 @@ const FILTERS = [
   { label: 'Hitters',  fn: (p: string|null) => !!p && p.split(',').some(x => ['C','1B','2B','3B','SS','LF','CF','RF','OF','DH'].includes(x.trim())) },
 ]
 
-export default function RosterSection({ title, players, accentColor = '#1a56db', defaultOpen = true, showFilter = false }: Props) {
+export default function RosterSection({ title, players, accentColor = '#1a56db', defaultOpen = true, showFilter = false, onPlayerClick }: Props) {
   const [open, setOpen] = useState(defaultOpen)
   const [sortKey, setSortKey] = useState<SortKey>('salary')
   const [sortDir, setSortDir] = useState<'asc'|'desc'>('desc')
@@ -148,6 +148,7 @@ export default function RosterSection({ title, players, accentColor = '#1a56db',
                 slotType={p.slot_type as 'MLB'|'MiLB'|'IL'|'dropped'}
                 isFranchisePlayer={p.is_franchise_player} deadMoney={p.dead_money}
                 position={p.position}
+                onClick={onPlayerClick ? () => onPlayerClick(p.player_name) : undefined}
               />
             ))}
             {sorted.length === 0 && (
