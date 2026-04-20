@@ -163,6 +163,18 @@ export async function POST(request: NextRequest) {
       return n.toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[\u2018\u2019`]/g, "'")
     }
 
+    // Strip disambiguation suffixes like "(C)", "(RP)", "(SP)" and middle initials
+    function cleanName(n: string): string[] {
+      const base = n.replace(/\s*\([^)]+\)\s*$/, '').trim() // strip "(C)", "(RP)" etc
+      const noMiddle = base.replace(/\s[A-Z]\./g, '').trim()  // strip middle initial "Tyler A. Wells" -> "Tyler Wells"
+      const variants = [base]
+      if (noMiddle !== base) variants.push(noMiddle)
+      // Also try dropping Jr./Sr./III etc
+      const noSuffix = base.replace(/\s+(Jr\.|Sr\.|III|II|IV)$/i, '').trim()
+      if (noSuffix !== base) variants.push(noSuffix)
+      return [...new Set(variants)]
+    }
+
     // Fetch all MLB seasons in parallel — 8 concurrent requests, ~3s total
     const mlbMap = new Map<string, number>()
     await Promise.all(
@@ -184,31 +196,44 @@ export async function POST(request: NextRequest) {
     const normMap = new Map<string, number>()
     for (const [k, v] of mlbMap) normMap.set(norm(k), v)
 
-    // First-pass name match
+    function lookupName(name: string): number | undefined {
+      for (const variant of cleanName(name)) {
+        const id = mlbMap.get(variant.toLowerCase().trim()) ?? normMap.get(norm(variant))
+        if (id) return id
+      }
+      return undefined
+    }
+
+    // First-pass name match with variant cleaning
     const updates: { id: unknown; mlbam_id: number }[] = []
     const needsSearch: { id: unknown; name: string }[] = []
     for (const player of unlinked) {
       const name = player.name as string
-      const id = mlbMap.get(name.toLowerCase().trim()) ?? normMap.get(norm(name))
+      // Skip placeholder names
+      if (name.startsWith('XXX') || name.toLowerCase().includes('do not')) continue
+      const id = lookupName(name)
       if (id) updates.push({ id: player.id, mlbam_id: id })
       else needsSearch.push({ id: player.id, name })
     }
 
-    // Targeted search for unmatched — 10 at a time
+    // Targeted search for unmatched — search using cleaned name, pick best match
     for (let i = 0; i < needsSearch.length; i += 10) {
       const batch = needsSearch.slice(i, i + 10)
-      const results = await Promise.all(batch.map(p =>
-        fetch(`https://statsapi.mlb.com/api/v1/people/search?names=${encodeURIComponent(p.name)}&sportIds=1,11,12,13,14,15,16`,
+      const results = await Promise.all(batch.map(p => {
+        const searchName = cleanName(p.name)[0] // use primary cleaned name for search
+        return fetch(`https://statsapi.mlb.com/api/v1/people/search?names=${encodeURIComponent(searchName)}&sportIds=1,11,12,13,14,15,16`,
           { signal: AbortSignal.timeout(6000) })
           .then(r => r.json())
           .then(d => {
             const people = d.people ?? []
-            const exact = people.find((x: Record<string,unknown>) => norm(x.fullName as string) === norm(p.name))
+            // Try exact match on any variant of the stored name
+            const variants = cleanName(p.name).map(v => norm(v))
+            const exact = people.find((x: Record<string,unknown>) => variants.includes(norm(x.fullName as string)))
             const hit = exact ?? (people.length === 1 ? people[0] : null)
             return hit ? { id: p.id, mlbam_id: hit.id as number } : null
           })
           .catch(() => null)
-      ))
+      }))
       for (const r of results) if (r) updates.push(r)
     }
 
