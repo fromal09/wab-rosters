@@ -22,7 +22,7 @@ async function fetchSavantPercentiles(mlbam_id: number) {
 }
 
 async function fetchMLBStats(mlbam_id: number) {
-  const url = `https://statsapi.mlb.com/api/v1/people/${mlbam_id}?hydrate=stats(group=[hitting,pitching],type=season,season=2026),currentTeam`
+  const url = `https://statsapi.mlb.com/api/v1/people/${mlbam_id}?hydrate=stats(group=[hitting,pitching],type=[season,expectedStatistics],season=2026),currentTeam`
   const res = await fetch(url, { cache: 'no-store' })
   if (!res.ok) return null
   const data = await res.json()
@@ -31,16 +31,19 @@ async function fetchMLBStats(mlbam_id: number) {
   const stats: Record<string, Record<string,unknown>> = {}
   for (const sg of person.stats ?? []) {
     const group = sg.group?.displayName as string
+    const type  = sg.type?.displayName as string
     const split = sg.splits?.[0]?.stat
-    if (split) stats[group] = split
+    if (split) stats[`${group}_${type}`] = split
   }
   return {
     name: person.fullName,
     team: person.currentTeam?.name ?? '—',
     teamAbbr: person.currentTeam?.abbreviation ?? '—',
     position: person.primaryPosition?.abbreviation ?? '—',
-    hitting: stats.hitting ?? null,
-    pitching: stats.pitching ?? null,
+    hitting:          stats['hitting_season'] ?? null,
+    pitching:         stats['pitching_season'] ?? null,
+    hittingExpected:  stats['hitting_expectedStatistics'] ?? null,
+    pitchingExpected: stats['pitching_expectedStatistics'] ?? null,
   }
 }
 
