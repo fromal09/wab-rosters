@@ -7,15 +7,18 @@ const IS_PITCHER = (pos: string | null) =>
 async function fetchSavantPercentiles(mlbam_id: number) {
   const res = await fetch(
     `https://baseballsavant.mlb.com/player-services/percentile-ranks?playerId=${mlbam_id}`,
-    { cache: 'no-store' }
+    {
+      cache: 'no-store',
+      headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' }
+    }
   )
   if (!res.ok) return null
   const raw = await res.json()
-  // Savant returns an array; find the current year entry
-  const entries = Array.isArray(raw) ? raw : Object.values(raw)
-  return entries.find((e: unknown) => (e as Record<string,unknown>).year == 2026)
-    ?? entries[0]
-    ?? null
+  // API returns an array of season entries
+  const entries: Record<string,unknown>[] = Array.isArray(raw) ? raw : Object.values(raw)
+  if (!entries.length) return null
+  // Prefer current year, fall back to most recent
+  return entries.sort((a, b) => (b.year as number) - (a.year as number))[0] ?? null
 }
 
 async function fetchMLBStats(mlbam_id: number) {

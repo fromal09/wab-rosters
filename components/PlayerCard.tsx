@@ -17,27 +17,24 @@ function pctBg(pct: number | null | undefined): string {
   return '#fee2e2'
 }
 
-function PercentileBar({ label, pct, value }: { label: string; pct: number | null; value?: string }) {
+function PercentileBar({ label, pct }: { label: string; pct: number | null }) {
   const color = pctColor(pct)
-  const bg = pctBg(pct)
   const w = pct != null ? `${pct}%` : '0%'
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0' }}>
-      <div style={{ width: 100, fontSize: '0.75rem', color: '#374151', fontWeight: 500, flexShrink: 0 }}>{label}</div>
-      <div style={{ flex: 1, height: 22, background: '#f0f2f5', borderRadius: 4, overflow: 'hidden', position: 'relative' }}>
-        <div style={{ height: '100%', width: w, background: color, borderRadius: 4, transition: 'width 0.5s ease', opacity: 0.85 }} />
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '3px 0' }}>
+      <div style={{ width: 110, fontSize: '0.73rem', color: '#374151', fontWeight: 500, flexShrink: 0 }}>{label}</div>
+      <div style={{ flex: 1, height: 20, background: '#f0f2f5', borderRadius: 4, overflow: 'hidden', position: 'relative' }}>
+        <div style={{ height: '100%', width: w, background: color, borderRadius: 4, transition: 'width 0.4s ease', opacity: 0.8 }} />
         {pct != null && (
           <span style={{
             position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)',
-            fontSize: '0.68rem', fontWeight: 800, color,
+            fontSize: '0.67rem', fontWeight: 800, color,
           }}>
-            {pct}
+            {pct}th
           </span>
         )}
       </div>
-      <div style={{ width: 48, textAlign: 'right', fontSize: '0.75rem', color: '#6b7280', flexShrink: 0 }}>
-        {value ?? '—'}
-      </div>
+      {pct == null && <span style={{ fontSize: '0.7rem', color: '#d1d5db' }}>—</span>}
     </div>
   )
 }
@@ -150,37 +147,45 @@ export default function PlayerCard({ playerName, onClose }: Props) {
   ] : []
 
   // Statcast percentile bars — pitcher vs hitter
+  // Savant percentile-ranks endpoint: the field value IS the percentile rank (0-100)
+  // Field names do NOT have _pct suffix — they ARE the percentile
+  // Raw stat values aren't available from this endpoint, so we show the percentile number as the value
+  const pct = (field: string) => {
+    const v = savant?.[field]
+    return (typeof v === 'number' && v >= 0 && v <= 100) ? v : null
+  }
+
   const hitterBars = [
-    { label: 'xwOBA',        pct: savant?.xwoba_pct as number,        value: fmt(savant?.xwoba, 3).replace(/^0/, '') },
-    { label: 'xBA',          pct: savant?.xba_pct as number,          value: fmt(savant?.xba, 3).replace(/^0/, '') },
-    { label: 'xSLG',         pct: savant?.xslg_pct as number,         value: fmt(savant?.xslg, 3).replace(/^0/, '') },
-    { label: 'Avg Exit Velo',pct: savant?.exit_velocity_avg_pct as number, value: fmt(savant?.exit_velocity_avg, 1) },
-    { label: 'Barrel %',     pct: savant?.barrel_batted_rate_pct as number, value: fmt(savant?.barrel_batted_rate, 1) + '%' },
-    { label: 'Hard-Hit %',   pct: savant?.hard_hit_percent_pct as number, value: fmt(savant?.hard_hit_percent, 1) + '%' },
-    { label: 'Bat Speed',    pct: savant?.avg_best_speed_pct as number, value: fmt(savant?.avg_best_speed, 1) },
-    { label: 'Chase %',      pct: savant?.chase_percent_pct as number, value: fmt(savant?.chase_percent, 1) + '%' },
-    { label: 'Whiff %',      pct: savant?.whiff_percent_pct as number, value: fmt(savant?.whiff_percent, 1) + '%' },
-    { label: 'K %',          pct: savant?.k_percent_pct as number,    value: fmt(savant?.k_percent, 1) + '%' },
-    { label: 'BB %',         pct: savant?.bb_percent_pct as number,   value: fmt(savant?.bb_percent, 1) + '%' },
-    { label: 'Sprint Speed', pct: savant?.sprint_speed_pct as number, value: fmt(savant?.sprint_speed, 1) },
+    { label: 'xwOBA',         pct: pct('xwoba') },
+    { label: 'xBA',           pct: pct('xba') },
+    { label: 'xSLG',          pct: pct('xslg') },
+    { label: 'Avg Exit Velo', pct: pct('exit_velocity_avg') },
+    { label: 'Barrel %',      pct: pct('barrel_batted_rate') },
+    { label: 'Hard-Hit %',    pct: pct('hard_hit_percent') },
+    { label: 'Bat Speed',     pct: pct('avg_best_speed') },
+    { label: 'Chase %',       pct: pct('oz_swing_percent') },
+    { label: 'Whiff %',       pct: pct('whiff_percent') },
+    { label: 'K %',           pct: pct('k_percent') },
+    { label: 'BB %',          pct: pct('bb_percent') },
+    { label: 'Sprint Speed',  pct: pct('sprint_speed') },
   ]
 
   const pitcherBars = [
-    { label: 'xERA',         pct: savant?.xera_pct as number,         value: fmt(savant?.xera, 2) },
-    { label: 'xBA',          pct: savant?.xba_pct as number,          value: fmt(savant?.xba, 3).replace(/^0/,'') },
-    { label: 'Avg EV Against',pct: savant?.exit_velocity_avg_pct as number, value: fmt(savant?.exit_velocity_avg, 1) },
-    { label: 'Chase %',      pct: savant?.chase_percent_pct as number, value: fmt(savant?.chase_percent, 1) + '%' },
-    { label: 'Whiff %',      pct: savant?.whiff_percent_pct as number, value: fmt(savant?.whiff_percent, 1) + '%' },
-    { label: 'K %',          pct: savant?.k_percent_pct as number,    value: fmt(savant?.k_percent, 1) + '%' },
-    { label: 'BB %',         pct: savant?.bb_percent_pct as number,   value: fmt(savant?.bb_percent, 1) + '%' },
-    { label: 'Barrel %',     pct: savant?.barrel_batted_rate_pct as number, value: fmt(savant?.barrel_batted_rate, 1) + '%' },
-    { label: 'Hard-Hit %',   pct: savant?.hard_hit_percent_pct as number, value: fmt(savant?.hard_hit_percent, 1) + '%' },
-    { label: 'GB %',         pct: savant?.gb_batted_rate_pct as number, value: fmt(savant?.gb_batted_rate, 1) + '%' },
+    { label: 'xERA',           pct: pct('xera') },
+    { label: 'xBA against',    pct: pct('xba') },
+    { label: 'Exit Velo vs',   pct: pct('exit_velocity_avg') },
+    { label: 'Chase %',        pct: pct('oz_swing_percent') },
+    { label: 'Whiff %',        pct: pct('whiff_percent') },
+    { label: 'K %',            pct: pct('k_percent') },
+    { label: 'BB %',           pct: pct('bb_percent') },
+    { label: 'Barrel % vs',    pct: pct('barrel_batted_rate') },
+    { label: 'Hard-Hit % vs',  pct: pct('hard_hit_percent') },
+    { label: 'GB %',           pct: pct('groundballs_percent') ?? pct('gb_batted_rate') },
   ]
 
   const bars = isPitcher ? pitcherBars : hitterBars
   const statGrid = isPitcher ? pitcherStats : hitterStats
-  const hasSavant = savant != null && Object.keys(savant).length > 2
+  const hasSavant = savant != null && bars.some(b => b.pct != null)
   const hasStats = statGrid.length > 0
 
   return (
@@ -298,7 +303,7 @@ export default function PlayerCard({ playerName, onClose }: Props) {
                     Statcast Actuals — Percentile vs MLB
                   </div>
                   {bars.filter(b => b.pct != null).map(b => (
-                    <PercentileBar key={b.label} label={b.label} pct={b.pct} value={b.value} />
+                    <PercentileBar key={b.label} label={b.label} pct={b.pct} />
                   ))}
                   {bars.every(b => b.pct == null) && (
                     <div style={{ fontSize: '0.82rem', color: '#9ca3af' }}>No Statcast data available yet for 2026.</div>
