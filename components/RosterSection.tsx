@@ -112,7 +112,7 @@ export default function RosterSection({ title, players, accentColor = '#1a56db',
             <tr>
               <th style={{ width: 5, padding: 0, background: '#f6f7f9', borderBottom: '1px solid #e4e7ec' }} />
               <th style={thStyle('left')} onClick={() => handleSort('name')}>Player <Arr k="name" /></th>
-              <th style={thStyle('center', 40)} onClick={() => handleSort('position')}>Pos <Arr k="position" /></th>
+              <th style={thStyle('center', 64)} onClick={() => handleSort('position')}>Pos <Arr k="position" /></th>
               <th style={thStyle('center', 36)} onClick={() => handleSort('service_year')}>Yr <Arr k="service_year" /></th>
               <th style={thStyle('right', 52)} onClick={() => handleSort('salary')}>Salary <Arr k="salary" /></th>
               <th style={thStyle('right', 60)} onClick={() => handleSort('keeper')}>

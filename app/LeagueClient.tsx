@@ -158,11 +158,11 @@ export default function LeagueClient({ teams, year }: { teams: TeamSummary[]; ye
                 {!rd?.loading && rd && (
                   <div className="roster-col-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 0 }}>
                     <div style={{ borderRight: '1px solid #f0f2f5' }}>
-                      <RosterSection title={`MLB (${mlb.length})`}  players={mlb}  accentColor="#166534" defaultOpen />
+                      <RosterSection showFilter title={`MLB (${mlb.length})`}  players={mlb}  accentColor="#166534" defaultOpen />
                     </div>
                     <div style={{ borderRight: '1px solid #f0f2f5' }}>
-                      <RosterSection title={`MiLB (${milb.length})`} players={milb} accentColor="#1a56db" defaultOpen />
-                      <RosterSection title={`IL (${il.length})`}     players={il}   accentColor="#b45309" defaultOpen />
+                      <RosterSection showFilter title={`MiLB (${milb.length})`} players={milb} accentColor="#1a56db" defaultOpen />
+                      <RosterSection showFilter title={`IL (${il.length})`}     players={il}   accentColor="#b45309" defaultOpen />
                     </div>
                     <div>
                       <RosterSection
