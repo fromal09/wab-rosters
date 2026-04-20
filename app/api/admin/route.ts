@@ -154,6 +154,84 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true })
   }
 
+  // ── Bulk auto-link MLBAM IDs ───────────────────────────────────────────────
+  if (action === 'bulk_link_mlbam') {
+    // Get all players missing an MLBAM ID
+    const unlinked = await sql`SELECT id, name FROM players WHERE mlbam_id IS NULL ORDER BY name`
+
+    // Build name→id map from MLB Stats API across all relevant seasons
+    // Uses fields param to keep responses small
+    const mlbMap = new Map<string, number>()
+    const SEASONS = [2026, 2025, 2024, 2023, 2022, 2021, 2020, 2019]
+    const SPORTS  = [1, 11, 12, 13, 14, 15, 16] // MLB + all MiLB levels
+
+    for (const sport of SPORTS) {
+      for (const season of SEASONS) {
+        try {
+          const res = await fetch(
+            `https://statsapi.mlb.com/api/v1/sports/${sport}/players?season=${season}&fields=people,id,fullName`,
+            { signal: AbortSignal.timeout(8000) }
+          )
+          if (!res.ok) continue
+          const data = await res.json()
+          for (const p of (data.people ?? [])) {
+            if (p.fullName && p.id) {
+              const key = p.fullName.toLowerCase().trim()
+              // Prefer more recent data (don't overwrite if already set from newer season)
+              if (!mlbMap.has(key)) mlbMap.set(key, p.id)
+            }
+          }
+        } catch { /* skip on timeout/error */ }
+      }
+    }
+
+    // Helper: normalize name for matching (strip accents, lowercase)
+    function normName(n: string): string {
+      return n.toLowerCase().trim()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // strip accents
+        .replace(/[''`]/g, "'") // normalize apostrophes
+    }
+
+    // Build normalized map as well
+    const mlbNormMap = new Map<string, number>()
+    for (const [name, id] of mlbMap) {
+      mlbNormMap.set(normName(name), id)
+    }
+
+    // Match and update
+    const matched: string[] = []
+    const unmatched: string[] = []
+
+    for (const player of unlinked) {
+      const name = player.name as string
+      const id = mlbMap.get(name.toLowerCase().trim())
+             ?? mlbNormMap.get(normName(name))
+      if (id) {
+        await sql`UPDATE players SET mlbam_id = ${id} WHERE id = ${player.id}`
+        matched.push(name)
+      } else {
+        unmatched.push(name)
+      }
+    }
+
+    // Clear cache for all newly linked players
+    if (matched.length > 0) {
+      const ids = await sql`SELECT mlbam_id FROM players WHERE name = ANY(${matched})`
+      const mlbamIds = ids.map(r => r.mlbam_id as number).filter(Boolean)
+      if (mlbamIds.length) {
+        await sql`DELETE FROM player_card_cache WHERE mlbam_id = ANY(${mlbamIds})`
+      }
+    }
+
+    return NextResponse.json({
+      ok: true,
+      total: unlinked.length,
+      matched: matched.length,
+      unmatched: unmatched.length,
+      unmatchedNames: unmatched.sort(),
+    })
+  }
+
   // ── Link player to MLBAM ID ────────────────────────────────────────────────
   if (action === 'link_player') {
     const playerName = (body.playerName ?? '').trim()

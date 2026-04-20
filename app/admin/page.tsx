@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import { MANAGERS, CURRENT_YEAR } from '@/lib/constants'
 
-type Tab = 'trade' | 'add-drop' | 'budget' | 'il' | 'salary' | 'franchise' | 'keeper-slots' | 'notes' | 'rename' | 'position'
+type Tab = 'trade' | 'add-drop' | 'budget' | 'il' | 'salary' | 'franchise' | 'keeper-slots' | 'notes' | 'rename' | 'position' | 'bulk-link'
 
 // ── Light-mode form primitives ────────────────────────────────────────────────
 const inputStyle = {
@@ -575,6 +575,61 @@ function SetPositionTab() {
   )
 }
 
+function BulkLinkTab() {
+  const [loading, setLoading] = useState(false)
+  const [result, setResult] = useState<{ total: number; matched: number; unmatched: number; unmatchedNames: string[] } | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  async function run() {
+    setLoading(true); setResult(null); setError(null)
+    const json = await adminPost({ action: 'bulk_link_mlbam' })
+    setLoading(false)
+    if (json.ok) setResult(json)
+    else setError(json.error ?? 'Unknown error')
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <p style={{ margin: 0, fontSize: '0.83rem', color: '#6b7280' }}>
+        Automatically matches all unlinked players against the MLB Stats API (all seasons 2019–2026, all levels MLB + MiLB). Takes about 30–60 seconds. Run once — any remaining unmatched players can be linked individually via the player card.
+      </p>
+      <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+        <Btn label={loading ? 'Fetching MLB data…' : 'Auto-Link All Players'} onClick={run} loading={loading} color="#1a56db" />
+        {loading && <span style={{ fontSize: '0.8rem', color: '#9ca3af' }}>Scanning MLB Stats API across 7 seasons × 7 sport levels…</span>}
+      </div>
+      {error && <Status msg={{ ok: false, text: error }} />}
+      {result && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ display: 'flex', gap: 10 }}>
+            {[
+              { label: 'Scanned', value: result.total, color: '#374151' },
+              { label: 'Linked ✓', value: result.matched, color: '#166534' },
+              { label: 'Unmatched', value: result.unmatched, color: result.unmatched > 0 ? '#b91c1c' : '#166534' },
+            ].map(s => (
+              <div key={s.label} style={{ padding: '10px 16px', background: '#f6f7f9', border: '1px solid #e4e7ec', borderRadius: 7, textAlign: 'center', minWidth: 90 }}>
+                <div style={{ fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.07em', color: '#9ca3af', fontWeight: 600, marginBottom: 3 }}>{s.label}</div>
+                <div style={{ fontSize: '1.3rem', fontWeight: 800, color: s.color }}>{s.value}</div>
+              </div>
+            ))}
+          </div>
+          {result.unmatchedNames.length > 0 && (
+            <div>
+              <div style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: '#9ca3af', marginBottom: 6 }}>
+                Remaining unmatched — link via player card
+              </div>
+              <div style={{ background: '#f6f7f9', border: '1px solid #e4e7ec', borderRadius: 6, padding: '10px 14px', maxHeight: 200, overflowY: 'auto' }}>
+                {result.unmatchedNames.map(n => (
+                  <div key={n} style={{ fontSize: '0.8rem', color: '#374151', padding: '2px 0', borderBottom: '1px solid #f0f2f5' }}>{n}</div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Login ────────────────────────────────────────────────────────────────────
 function LoginScreen({ onLogin }: { onLogin: () => void }) {
   const [password, setPassword] = useState(''); const [error, setError] = useState(''); const [loading, setLoading] = useState(false)
@@ -628,6 +683,7 @@ export default function AdminPage() {
     { id: 'franchise',    label: '★ Franchise' },
     { id: 'rename',       label: '✏️ Rename' },
     { id: 'position',     label: '🏷 Position' },
+    { id: 'bulk-link',    label: '⚡ Auto-Link IDs' },
     { id: 'notes',        label: '📝 Notes' },
   ]
 
@@ -667,6 +723,7 @@ export default function AdminPage() {
         {tab === 'franchise'    && <FranchiseTab />}
         {tab === 'rename'       && <RenameTab />}
         {tab === 'position'     && <SetPositionTab />}
+        {tab === 'bulk-link'    && <BulkLinkTab />}
         {tab === 'notes'        && <NotesTab />}
       </div>
     </div>
