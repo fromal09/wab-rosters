@@ -14,7 +14,7 @@ export default function PlayerRow({ name, serviceYear, salary, slotType, isFranc
   const keeperPrice = isDropped ? null : getKeeperPrice(salary)
   const svcColor = getServiceYearColor(serviceYear)
   const isFranchise = isFranchisePlayer === true || isFranchisePlayer === 'true'
-  const displaySalary = isDropped ? (deadMoney ?? Math.ceil(salary / 2)) : salary
+  const deadMoneyAmt = isDropped ? (deadMoney ?? Math.ceil(salary / 2)) : null
   const rowBg = isDropped ? 'transparent' : `${svcColor}18`
 
   return (
@@ -33,12 +33,14 @@ export default function PlayerRow({ name, serviceYear, salary, slotType, isFranc
       <td style={{ padding: '3px 5px', textAlign: 'center', width: 36 }}>
         <ServiceYearBadge year={serviceYear} />
       </td>
+      {/* Salary — always original pre-drop salary */}
       <td style={{ padding: '3px 8px', textAlign: 'right', width: 48, fontVariantNumeric: 'tabular-nums' }}>
-        <span style={{ fontSize: '0.8rem', fontWeight: 600, color: isDropped ? '#9ca3af' : '#374151' }}>${displaySalary}</span>
+        <span style={{ fontSize: '0.8rem', fontWeight: 600, color: isDropped ? '#9ca3af' : '#374151' }}>${salary}</span>
       </td>
+      {/* Last column — KP for active, dead money for dropped */}
       <td style={{ padding: '3px 8px', textAlign: 'right', width: 52, fontVariantNumeric: 'tabular-nums' }}>
         {isDropped
-          ? <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#b91c1c' }}>${displaySalary}</span>
+          ? <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#b91c1c' }}>${deadMoneyAmt}</span>
           : <span style={{ fontSize: '0.79rem', color: '#9ca3af' }}>${keeperPrice}</span>
         }
       </td>

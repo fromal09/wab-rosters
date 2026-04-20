@@ -108,9 +108,16 @@ export async function POST(request: NextRequest) {
     const { managerSlug, playerName, toSlot } = body
     const managerId = await getManagerId(sql, managerSlug)
     if (!managerId) return NextResponse.json({ error: 'Manager not found' }, { status: 404 })
-    const playerId = await getOrCreatePlayer(sql, playerName)
-    if (!playerId) return NextResponse.json({ error: 'Player not found' }, { status: 404 })
-    await sql`UPDATE roster_slots SET slot_type=${toSlot},updated_at=${now} WHERE player_id=${playerId} AND manager_id=${managerId} AND year=${year} AND slot_type!='dropped'`
+    // Case-insensitive player lookup — never create a new record for a move
+    const playerRows = await sql`SELECT id FROM players WHERE LOWER(name) = LOWER(${playerName.trim()})`
+    if (!playerRows.length) return NextResponse.json({ error: `Player not found: "${playerName}"` }, { status: 404 })
+    const playerId = playerRows[0].id
+    const updated = await sql`
+      UPDATE roster_slots SET slot_type=${toSlot}, updated_at=${now}
+      WHERE player_id=${playerId} AND manager_id=${managerId} AND year=${year} AND slot_type != 'dropped'
+      RETURNING id
+    `
+    if (!updated.length) return NextResponse.json({ error: `No active roster slot found for "${playerName}" on this team in ${year}` }, { status: 404 })
     return NextResponse.json({ ok: true })
   }
 
