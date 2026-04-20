@@ -13,7 +13,7 @@ interface TeamSummary {
   keeper_slots: number
   notes: { id: string; note: string }[]
 }
-interface Player { player_name: string; service_year: number; salary: number; slot_type: string; is_franchise_player: boolean; dead_money?: number | null }
+interface Player { player_name: string; service_year: number; salary: number; slot_type: string; is_franchise_player: boolean; dead_money?: number | null; position?: string | null }
 interface TeamRoster { slug: string; roster: Player[]; loading: boolean }
 
 export default function LeagueClient({ teams, year }: { teams: TeamSummary[]; year: number }) {

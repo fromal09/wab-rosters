@@ -6,7 +6,7 @@ import RosterSection from '@/components/RosterSection'
 
 interface Player {
   player_name: string; service_year: number; salary: number
-  slot_type: string; is_franchise_player: boolean; dead_money?: number | null
+  slot_type: string; is_franchise_player: boolean; dead_money?: number | null; position?: string | null
 }
 interface BudgetTxn { amount: number; note: string | null; created_at: string }
 interface KeeperTxn { delta: number; note: string | null; created_at: string }
@@ -180,9 +180,9 @@ export default function TeamPage() {
 
       {/* Roster */}
       <div className="card" style={{ overflow: 'hidden' }}>
-        <RosterSection title={`Major League (${mlb.length})`}  players={mlb}     accentColor="#166534" defaultOpen />
-        <RosterSection title={`Minor League (${milb.length})`} players={milb}    accentColor="#1a56db" defaultOpen />
-        <RosterSection title={`Injured List (${il.length})`}   players={il}      accentColor="#b45309" defaultOpen />
+        <RosterSection showFilter title={`Major League (${mlb.length})`}  players={mlb}     accentColor="#166534" defaultOpen />
+        <RosterSection showFilter title={`Minor League (${milb.length})`} players={milb}    accentColor="#1a56db" defaultOpen />
+        <RosterSection showFilter title={`Injured List (${il.length})`}   players={il}      accentColor="#b45309" defaultOpen />
         <RosterSection title={`Dropped — $${deadMoney} dead (${dropped.length})`} players={dropped} accentColor="#b91c1c" defaultOpen />
       </div>
     </div>

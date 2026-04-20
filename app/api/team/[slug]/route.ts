@@ -15,28 +15,17 @@ export async function GET(
 
   const [roster, budgetTxns, keeperTxns, notes] = await Promise.all([
     query`
-      SELECT p.name AS player_name, rs.service_year, rs.salary,
+      SELECT p.name AS player_name, p.position,
+             rs.service_year, rs.salary,
              rs.slot_type, rs.is_franchise_player::boolean AS is_franchise_player, rs.dead_money
       FROM roster_slots rs
       JOIN players p ON p.id = rs.player_id
       WHERE rs.manager_id = ${manager.id} AND rs.year = ${year}
       ORDER BY rs.salary DESC
     `,
-    query`
-      SELECT amount, note, created_at FROM budget_transactions
-      WHERE manager_id = ${manager.id} AND year = ${year}
-      ORDER BY created_at ASC
-    `,
-    query`
-      SELECT delta, note, created_at FROM keeper_slot_transactions
-      WHERE manager_id = ${manager.id} AND year = ${year}
-      ORDER BY created_at ASC
-    `,
-    query`
-      SELECT id, note, created_at FROM team_notes
-      WHERE manager_id = ${manager.id} AND year = ${year}
-      ORDER BY created_at ASC
-    `,
+    query`SELECT amount, note, created_at FROM budget_transactions WHERE manager_id = ${manager.id} AND year = ${year} ORDER BY created_at ASC`,
+    query`SELECT delta, note, created_at FROM keeper_slot_transactions WHERE manager_id = ${manager.id} AND year = ${year} ORDER BY created_at ASC`,
+    query`SELECT id, note, created_at FROM team_notes WHERE manager_id = ${manager.id} AND year = ${year} ORDER BY created_at ASC`,
   ])
 
   const currentBudget = budgetTxns.reduce((a, t) => a + (t.amount as number), 0)

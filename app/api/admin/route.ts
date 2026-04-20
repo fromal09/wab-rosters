@@ -154,6 +154,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true })
   }
 
+  // ── Set player position ────────────────────────────────────────────────────
+  if (action === 'set_position') {
+    const playerName = (body.playerName ?? '').trim()
+    const position   = (body.position   ?? '').trim()
+    if (!playerName) return NextResponse.json({ error: 'playerName required' }, { status: 400 })
+    const rows = await sql`UPDATE players SET position = ${position || null} WHERE LOWER(name) = LOWER(${playerName}) RETURNING id`
+    if (!rows.length) return NextResponse.json({ error: `Player not found: "${playerName}"` }, { status: 404 })
+    return NextResponse.json({ ok: true })
+  }
+
   // ── Rename player ──────────────────────────────────────────────────────────
   if (action === 'rename_player') {
     const oldName = (body.oldName ?? '').trim()

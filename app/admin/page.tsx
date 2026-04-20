@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import { MANAGERS, CURRENT_YEAR } from '@/lib/constants'
 
-type Tab = 'trade' | 'add-drop' | 'budget' | 'il' | 'salary' | 'franchise' | 'keeper-slots' | 'notes' | 'rename'
+type Tab = 'trade' | 'add-drop' | 'budget' | 'il' | 'salary' | 'franchise' | 'keeper-slots' | 'notes' | 'rename' | 'position'
 
 // ── Light-mode form primitives ────────────────────────────────────────────────
 const inputStyle = {
@@ -486,6 +486,58 @@ function RenameTab() {
   )
 }
 
+function SetPositionTab() {
+  const [player, setPlayer] = useState('')
+  const [position, setPosition] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
+
+  const COMMON_POSITIONS = ['SP','RP','C','1B','2B','3B','SS','LF','CF','RF','OF','DH']
+
+  async function submit() {
+    if (!player.trim()) return setMsg({ ok: false, text: 'Player name required' })
+    setLoading(true); setMsg(null)
+    const json = await adminPost({ action: 'set_position', playerName: player.trim(), position: position.trim() })
+    if (json.ok) {
+      setMsg({ ok: true, text: `Set ${player.trim()} → ${position.trim() || '(cleared)'}` })
+      setPlayer(''); setPosition('')
+    } else {
+      setMsg({ ok: false, text: json.error })
+    }
+    setLoading(false)
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <p style={{ margin: 0, fontSize: '0.83rem', color: '#6b7280' }}>
+        Set or correct a player's positional eligibility. Use comma-separated for multi-position players (e.g. <code>2B,SS</code> or <code>LF,CF,OF</code>).
+      </p>
+      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 12 }}>
+        <Input label="Player Name" value={player} onChange={setPlayer} placeholder="Exact name as it appears on roster…" />
+        <Input label="Position(s)" value={position} onChange={setPosition} placeholder="e.g. SP or 2B,SS" />
+      </div>
+      {/* Quick-pick buttons */}
+      <div>
+        <div style={{ fontSize: '0.68rem', color: '#9ca3af', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Quick pick</div>
+        <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+          {COMMON_POSITIONS.map(pos => (
+            <button key={pos} onClick={() => setPosition(pos)} style={{
+              padding: '3px 10px', borderRadius: 4, border: '1px solid #e4e7ec',
+              background: position === pos ? '#1a56db' : '#f6f7f9',
+              color: position === pos ? '#fff' : '#374151',
+              fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer',
+            }}>{pos}</button>
+          ))}
+        </div>
+      </div>
+      <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+        <Btn label="Set Position" onClick={submit} loading={loading} color="#166534" />
+        <Status msg={msg} />
+      </div>
+    </div>
+  )
+}
+
 // ── Login ────────────────────────────────────────────────────────────────────
 function LoginScreen({ onLogin }: { onLogin: () => void }) {
   const [password, setPassword] = useState(''); const [error, setError] = useState(''); const [loading, setLoading] = useState(false)
@@ -538,6 +590,7 @@ export default function AdminPage() {
     { id: 'salary',       label: '✏️ Salary' },
     { id: 'franchise',    label: '★ Franchise' },
     { id: 'rename',       label: '✏️ Rename' },
+    { id: 'position',     label: '🏷 Position' },
     { id: 'notes',        label: '📝 Notes' },
   ]
 
@@ -576,6 +629,7 @@ export default function AdminPage() {
         {tab === 'salary'       && <SalaryTab />}
         {tab === 'franchise'    && <FranchiseTab />}
         {tab === 'rename'       && <RenameTab />}
+        {tab === 'position'     && <SetPositionTab />}
         {tab === 'notes'        && <NotesTab />}
       </div>
     </div>
