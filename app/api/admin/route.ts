@@ -156,80 +156,70 @@ export async function POST(request: NextRequest) {
 
   // ── Bulk auto-link MLBAM IDs ───────────────────────────────────────────────
   if (action === 'bulk_link_mlbam') {
-    // Get all players missing an MLBAM ID
     const unlinked = await sql`SELECT id, name FROM players WHERE mlbam_id IS NULL ORDER BY name`
+    if (!unlinked.length) return NextResponse.json({ ok: true, total: 0, matched: 0, unmatched: 0, unmatchedNames: [] })
 
-    // Build name→id map from MLB Stats API across all relevant seasons
-    // Uses fields param to keep responses small
+    function norm(n: string) {
+      return n.toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[\u2018\u2019`]/g, "'")
+    }
+
+    // Fetch all MLB seasons in parallel — 8 concurrent requests, ~3s total
     const mlbMap = new Map<string, number>()
-    const SEASONS = [2026, 2025, 2024, 2023, 2022, 2021, 2020, 2019]
-    const SPORTS  = [1, 11, 12, 13, 14, 15, 16] // MLB + all MiLB levels
-
-    for (const sport of SPORTS) {
-      for (const season of SEASONS) {
-        try {
-          const res = await fetch(
-            `https://statsapi.mlb.com/api/v1/sports/${sport}/players?season=${season}&fields=people,id,fullName`,
-            { signal: AbortSignal.timeout(8000) }
-          )
-          if (!res.ok) continue
-          const data = await res.json()
-          for (const p of (data.people ?? [])) {
-            if (p.fullName && p.id) {
-              const key = p.fullName.toLowerCase().trim()
-              // Prefer more recent data (don't overwrite if already set from newer season)
-              if (!mlbMap.has(key)) mlbMap.set(key, p.id)
+    await Promise.all(
+      [2026, 2025, 2024, 2023, 2022, 2021, 2020, 2019].map(season =>
+        fetch(`https://statsapi.mlb.com/api/v1/sports/1/players?season=${season}&fields=people,id,fullName`,
+          { signal: AbortSignal.timeout(12000) })
+          .then(r => r.json())
+          .then(d => {
+            for (const p of d.people ?? []) {
+              if (p.fullName && p.id) {
+                const k = p.fullName.toLowerCase().trim()
+                if (!mlbMap.has(k)) mlbMap.set(k, p.id)
+              }
             }
-          }
-        } catch { /* skip on timeout/error */ }
-      }
-    }
+          })
+          .catch(() => {})
+      )
+    )
+    const normMap = new Map<string, number>()
+    for (const [k, v] of mlbMap) normMap.set(norm(k), v)
 
-    // Helper: normalize name for matching (strip accents, lowercase)
-    function normName(n: string): string {
-      return n.toLowerCase().trim()
-        .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // strip accents
-        .replace(/[''`]/g, "'") // normalize apostrophes
-    }
-
-    // Build normalized map as well
-    const mlbNormMap = new Map<string, number>()
-    for (const [name, id] of mlbMap) {
-      mlbNormMap.set(normName(name), id)
-    }
-
-    // Match and update
-    const matched: string[] = []
-    const unmatched: string[] = []
-
+    // First-pass name match
+    const updates: { id: unknown; mlbam_id: number }[] = []
+    const needsSearch: { id: unknown; name: string }[] = []
     for (const player of unlinked) {
       const name = player.name as string
-      const id = mlbMap.get(name.toLowerCase().trim())
-             ?? mlbNormMap.get(normName(name))
-      if (id) {
-        await sql`UPDATE players SET mlbam_id = ${id} WHERE id = ${player.id}`
-        matched.push(name)
-      } else {
-        unmatched.push(name)
-      }
+      const id = mlbMap.get(name.toLowerCase().trim()) ?? normMap.get(norm(name))
+      if (id) updates.push({ id: player.id, mlbam_id: id })
+      else needsSearch.push({ id: player.id, name })
     }
 
-    // Clear cache for all newly linked players
-    if (matched.length > 0) {
-      const ids = await sql`SELECT mlbam_id FROM players WHERE name = ANY(${matched})`
-      const mlbamIds = ids.map(r => r.mlbam_id as number).filter(Boolean)
-      if (mlbamIds.length) {
-        await sql`DELETE FROM player_card_cache WHERE mlbam_id = ANY(${mlbamIds})`
-      }
+    // Targeted search for unmatched — 10 at a time
+    for (let i = 0; i < needsSearch.length; i += 10) {
+      const batch = needsSearch.slice(i, i + 10)
+      const results = await Promise.all(batch.map(p =>
+        fetch(`https://statsapi.mlb.com/api/v1/people/search?names=${encodeURIComponent(p.name)}&sportIds=1,11,12,13,14,15,16`,
+          { signal: AbortSignal.timeout(6000) })
+          .then(r => r.json())
+          .then(d => {
+            const people = d.people ?? []
+            const exact = people.find((x: Record<string,unknown>) => norm(x.fullName as string) === norm(p.name))
+            const hit = exact ?? (people.length === 1 ? people[0] : null)
+            return hit ? { id: p.id, mlbam_id: hit.id as number } : null
+          })
+          .catch(() => null)
+      ))
+      for (const r of results) if (r) updates.push(r)
     }
 
-    return NextResponse.json({
-      ok: true,
-      total: unlinked.length,
-      matched: matched.length,
-      unmatched: unmatched.length,
-      unmatchedNames: unmatched.sort(),
-    })
+    for (const { id, mlbam_id } of updates) {
+      await sql`UPDATE players SET mlbam_id = ${mlbam_id} WHERE id = ${id}`
+    }
+
+    const linkedIds = new Set(updates.map(u => u.id))
+    const unmatchedNames = unlinked.filter(p => !linkedIds.has(p.id)).map(p => p.name as string).sort()
+
+    return NextResponse.json({ ok: true, total: unlinked.length, matched: updates.length, unmatched: unmatchedNames.length, unmatchedNames })
   }
 
   // ── Link player to MLBAM ID ────────────────────────────────────────────────
