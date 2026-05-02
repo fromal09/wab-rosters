@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import { MANAGERS, CURRENT_YEAR } from '@/lib/constants'
 
-type Tab = 'trade' | 'add-drop' | 'budget' | 'il' | 'salary' | 'franchise' | 'keeper-slots' | 'notes' | 'rename' | 'position' | 'bulk-link'
+type Tab = 'trade' | 'add-drop' | 'budget' | 'il' | 'salary' | 'franchise' | 'keeper-slots' | 'notes' | 'rename' | 'position' | 'bulk-link' | 'history'
 
 // ── Light-mode form primitives ────────────────────────────────────────────────
 const inputStyle = {
@@ -630,6 +630,90 @@ function BulkLinkTab() {
   )
 }
 
+function HistoryTab() {
+  const [entries, setEntries] = useState<{ id: string; action: string; description: string; created_at: string }[]>([])
+  const [loading, setLoading] = useState(false)
+  const [rolling, setRolling] = useState<string | null>(null)
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
+
+  async function load() {
+    setLoading(true)
+    try {
+      const res = await fetch('/api/admin-log')
+      setEntries(await res.json())
+    } finally { setLoading(false) }
+  }
+
+  async function rollback(id: string, description: string) {
+    if (!confirm(`Roll back: "${description}"?\n\nThis will undo the action and cannot be re-done.`)) return
+    setRolling(id); setMsg(null)
+    try {
+      const res = await fetch('/api/admin-log', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ logId: id }),
+      })
+      const json = await res.json()
+      if (json.ok) {
+        setMsg({ ok: true, text: `Rolled back: ${description}` })
+        setEntries(e => e.filter(x => x.id !== id))
+      } else {
+        setMsg({ ok: false, text: json.error ?? 'Rollback failed' })
+      }
+    } finally { setRolling(null) }
+  }
+
+  useEffect(() => { load() }, [])
+
+  const ACTION_COLORS: Record<string, string> = {
+    drop: '#b91c1c', claim: '#166534', trade: '#1a56db',
+    il_move: '#b45309', update_salary: '#7c3aed',
+    budget: '#374151', keeper_slots: '#0891b2',
+    set_franchise: '#1a56db',
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <p style={{ margin: 0, fontSize: '0.83rem', color: '#6b7280' }}>
+          Last 50 actions. Click Rollback to undo — the action is reversed and removed from this log.
+        </p>
+        <button onClick={load} style={{ padding: '5px 12px', background: '#f6f7f9', border: '1px solid #e4e7ec', borderRadius: 5, color: '#374151', cursor: 'pointer', fontSize: '0.78rem' }}>
+          ↺ Refresh
+        </button>
+      </div>
+      {msg && <Status msg={msg} />}
+      {loading && <div style={{ color: '#9ca3af', fontSize: '0.83rem' }}>Loading…</div>}
+      {!loading && entries.length === 0 && (
+        <div style={{ color: '#9ca3af', fontSize: '0.83rem' }}>No actions logged yet. Actions are recorded going forward.</div>
+      )}
+      {!loading && entries.map(e => {
+        const color = ACTION_COLORS[e.action] ?? '#6b7280'
+        const date = new Date(e.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+        return (
+          <div key={e.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', background: '#f8f9fb', border: '1px solid #e4e7ec', borderRadius: 7 }}>
+            <span style={{ fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color, background: `${color}18`, border: `1px solid ${color}40`, padding: '2px 7px', borderRadius: 4, flexShrink: 0 }}>
+              {e.action.replace('_', ' ')}
+            </span>
+            <span style={{ flex: 1, fontSize: '0.83rem', color: '#374151' }}>{e.description}</span>
+            <span style={{ fontSize: '0.72rem', color: '#9ca3af', whiteSpace: 'nowrap', flexShrink: 0 }}>{date}</span>
+            <button
+              onClick={() => rollback(e.id, e.description)}
+              disabled={rolling === e.id}
+              style={{
+                padding: '4px 12px', background: rolling === e.id ? '#f6f7f9' : '#fef2f2',
+                border: '1px solid #fecaca', borderRadius: 5,
+                color: '#b91c1c', cursor: rolling === e.id ? 'not-allowed' : 'pointer',
+                fontSize: '0.75rem', fontWeight: 600, flexShrink: 0,
+              }}>
+              {rolling === e.id ? 'Rolling back…' : '↩ Rollback'}
+            </button>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 // ── Login ────────────────────────────────────────────────────────────────────
 function LoginScreen({ onLogin }: { onLogin: () => void }) {
   const [password, setPassword] = useState(''); const [error, setError] = useState(''); const [loading, setLoading] = useState(false)
@@ -685,6 +769,7 @@ export default function AdminPage() {
     { id: 'position',     label: '🏷 Position' },
     { id: 'bulk-link',    label: '⚡ Auto-Link IDs' },
     { id: 'notes',        label: '📝 Notes' },
+    { id: 'history',      label: '↩ Rollback' },
   ]
 
   return (
@@ -725,6 +810,7 @@ export default function AdminPage() {
         {tab === 'position'     && <SetPositionTab />}
         {tab === 'bulk-link'    && <BulkLinkTab />}
         {tab === 'notes'        && <NotesTab />}
+        {tab === 'history'      && <HistoryTab />}
       </div>
     </div>
   )

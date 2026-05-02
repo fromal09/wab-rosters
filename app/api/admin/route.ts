@@ -38,6 +38,11 @@ export async function POST(request: NextRequest) {
     const year: number = body.year ?? CURRENT_YEAR
     const now = new Date().toISOString()
 
+    // Helper: log action for rollback
+    async function logAction(actionType: string, description: string, snapshot: Record<string, unknown>) {
+      await sql`INSERT INTO admin_action_log (action, description, payload, snapshot) VALUES (${actionType}, ${description}, ${JSON.stringify(body)}, ${JSON.stringify(snapshot)})`
+    }
+
   if (action === 'drop') {
     const { managerSlug, playerName, note } = body
     const managerId = await getManagerId(sql, managerSlug)
@@ -45,14 +50,18 @@ export async function POST(request: NextRequest) {
     const playerId = await getOrCreatePlayer(sql, playerName)
     if (!playerId) return NextResponse.json({ error: 'Player not found' }, { status: 404 })
     const slots = await sql`
-      SELECT id, salary FROM roster_slots
+      SELECT id, salary, slot_type, dead_money FROM roster_slots
       WHERE player_id=${playerId} AND manager_id=${managerId} AND year=${year} AND slot_type!='dropped'
     `
     if (!slots[0]) return NextResponse.json({ error: 'Player not on active roster' }, { status: 404 })
     const dead = getDeadMoney(slots[0].salary as number)
     await sql`UPDATE roster_slots SET slot_type='dropped', dead_money=${dead}, updated_at=${now} WHERE id=${slots[0].id}`
-    await sql`INSERT INTO transactions (year,type,player_id,manager_id,price,is_draft_day,transaction_date,note)
-              VALUES (${year},'drop',${playerId},${managerId},${slots[0].salary},false,${now},${note??null})`
+    const txn = await sql`INSERT INTO transactions (year,type,player_id,manager_id,price,is_draft_day,transaction_date,note)
+              VALUES (${year},'drop',${playerId},${managerId},${slots[0].salary},false,${now},${note??null}) RETURNING id`
+    await logAction('drop', `Dropped ${playerName} from ${managerSlug}`, {
+      slotId: slots[0].id, oldSlotType: slots[0].slot_type, oldDeadMoney: null,
+      transactionId: txn[0]?.id,
+    })
     return NextResponse.json({ ok: true, dead_money: dead })
   }
 
@@ -62,10 +71,13 @@ export async function POST(request: NextRequest) {
     if (!managerId) return NextResponse.json({ error: 'Manager not found' }, { status: 404 })
     const playerId = await getOrCreatePlayer(sql, playerName)
     if (!playerId) return NextResponse.json({ error: 'Could not resolve player' }, { status: 500 })
-    await sql`INSERT INTO roster_slots (player_id,manager_id,year,slot_type,service_year,salary,is_franchise_player)
-              VALUES (${playerId},${managerId},${year},${slotType},0,${salary},false)`
-    await sql`INSERT INTO transactions (year,type,player_id,manager_id,price,is_draft_day,transaction_date,note)
-              VALUES (${year},'claim',${playerId},${managerId},${salary},false,${now},${note??null})`
+    const slot = await sql`INSERT INTO roster_slots (player_id,manager_id,year,slot_type,service_year,salary,is_franchise_player)
+              VALUES (${playerId},${managerId},${year},${slotType},0,${salary},false) RETURNING id`
+    const txn = await sql`INSERT INTO transactions (year,type,player_id,manager_id,price,is_draft_day,transaction_date,note)
+              VALUES (${year},'claim',${playerId},${managerId},${salary},false,${now},${note??null}) RETURNING id`
+    await logAction('claim', `Added ${playerName} to ${managerSlug} ($${salary} ${slotType})`, {
+      slotId: slot[0]?.id, transactionId: txn[0]?.id,
+    })
     return NextResponse.json({ ok: true })
   }
 
@@ -74,25 +86,34 @@ export async function POST(request: NextRequest) {
     const aId = await getManagerId(sql, managerASlug)
     const bId = await getManagerId(sql, managerBSlug)
     if (!aId || !bId) return NextResponse.json({ error: 'Manager not found' }, { status: 404 })
+
+    // Snapshot all slot IDs before moving
+    const playerMoves: { slotId: string; originalManagerId: string; playerName: string }[] = []
     for (const pName of playersAtoB) {
       const pid = await getOrCreatePlayer(sql, pName); if (!pid) continue
+      const slots = await sql`SELECT id FROM roster_slots WHERE player_id=${pid} AND manager_id=${aId} AND year=${year} AND slot_type!='dropped'`
+      if (slots[0]) playerMoves.push({ slotId: slots[0].id as string, originalManagerId: aId, playerName: pName })
       await sql`UPDATE roster_slots SET manager_id=${bId},updated_at=${now} WHERE player_id=${pid} AND manager_id=${aId} AND year=${year} AND slot_type!='dropped'`
       await sql`INSERT INTO transactions (year,type,player_id,manager_id,counterpart_manager_id,is_draft_day,transaction_date,note) VALUES (${year},'trade_send',${pid},${aId},${bId},false,${now},${note}),(${year},'trade_receive',${pid},${bId},${aId},false,${now},${note})`
     }
     for (const pName of playersBtoA) {
       const pid = await getOrCreatePlayer(sql, pName); if (!pid) continue
+      const slots = await sql`SELECT id FROM roster_slots WHERE player_id=${pid} AND manager_id=${bId} AND year=${year} AND slot_type!='dropped'`
+      if (slots[0]) playerMoves.push({ slotId: slots[0].id as string, originalManagerId: bId, playerName: pName })
       await sql`UPDATE roster_slots SET manager_id=${aId},updated_at=${now} WHERE player_id=${pid} AND manager_id=${bId} AND year=${year} AND slot_type!='dropped'`
       await sql`INSERT INTO transactions (year,type,player_id,manager_id,counterpart_manager_id,is_draft_day,transaction_date,note) VALUES (${year},'trade_send',${pid},${bId},${aId},false,${now},${note}),(${year},'trade_receive',${pid},${aId},${bId},false,${now},${note})`
     }
-    if (budgetAtoB > 0) await sql`INSERT INTO budget_transactions (manager_id,year,amount,note) VALUES (${aId},${year},${-budgetAtoB},${'Trade to '+managerBSlug+(note?': '+note:'')}),(${bId},${year},${budgetAtoB},${'Trade from '+managerASlug+(note?': '+note:'')})`
-    if (budgetBtoA > 0) await sql`INSERT INTO budget_transactions (manager_id,year,amount,note) VALUES (${bId},${year},${-budgetBtoA},${'Trade to '+managerASlug+(note?': '+note:'')}),(${aId},${year},${budgetBtoA},${'Trade from '+managerBSlug+(note?': '+note:'')})`
-
-    // Keeper slot transfers
+    const budgetIds: string[] = []
+    if (budgetAtoB > 0) { const r = await sql`INSERT INTO budget_transactions (manager_id,year,amount,note) VALUES (${aId},${year},${-budgetAtoB},${'Trade to '+managerBSlug+(note?': '+note:'')}),(${bId},${year},${budgetAtoB},${'Trade from '+managerASlug+(note?': '+note:'')}) RETURNING id`; budgetIds.push(...r.map(x=>x.id as string)) }
+    if (budgetBtoA > 0) { const r = await sql`INSERT INTO budget_transactions (manager_id,year,amount,note) VALUES (${bId},${year},${-budgetBtoA},${'Trade to '+managerASlug+(note?': '+note:'')}),(${aId},${year},${budgetBtoA},${'Trade from '+managerBSlug+(note?': '+note:'')}) RETURNING id`; budgetIds.push(...r.map(x=>x.id as string)) }
     const keeperAtoB = parseInt(body.keeperAtoB) || 0
     const keeperBtoA = parseInt(body.keeperBtoA) || 0
-    if (keeperAtoB > 0) await sql`INSERT INTO keeper_slot_transactions (manager_id,year,delta,note) VALUES (${aId},${year},${-keeperAtoB},${'Trade to '+managerBSlug+(note?': '+note:'')}),(${bId},${year},${keeperAtoB},${'Trade from '+managerASlug+(note?': '+note:'')})`
-    if (keeperBtoA > 0) await sql`INSERT INTO keeper_slot_transactions (manager_id,year,delta,note) VALUES (${bId},${year},${-keeperBtoA},${'Trade to '+managerASlug+(note?': '+note:'')}),(${aId},${year},${keeperBtoA},${'Trade from '+managerBSlug+(note?': '+note:'')})`
+    const keeperIds: string[] = []
+    if (keeperAtoB > 0) { const r = await sql`INSERT INTO keeper_slot_transactions (manager_id,year,delta,note) VALUES (${aId},${year},${-keeperAtoB},${'Trade to '+managerBSlug+(note?': '+note:'')}),(${bId},${year},${keeperAtoB},${'Trade from '+managerASlug+(note?': '+note:'')}) RETURNING id`; keeperIds.push(...r.map(x=>x.id as string)) }
+    if (keeperBtoA > 0) { const r = await sql`INSERT INTO keeper_slot_transactions (manager_id,year,delta,note) VALUES (${bId},${year},${-keeperBtoA},${'Trade to '+managerASlug+(note?': '+note:'')}),(${aId},${year},${keeperBtoA},${'Trade from '+managerBSlug+(note?': '+note:'')}) RETURNING id`; keeperIds.push(...r.map(x=>x.id as string)) }
 
+    const allPlayers = [...playersAtoB, ...playersBtoA].join(', ')
+    await logAction('trade', `Trade: ${managerASlug} ↔ ${managerBSlug} (${allPlayers || 'budget/slots only'})`, { playerMoves, budgetIds, keeperIds, tradeTimestamp: now })
     return NextResponse.json({ ok: true })
   }
 
@@ -100,7 +121,8 @@ export async function POST(request: NextRequest) {
     const { managerSlug, amount, note } = body
     const managerId = await getManagerId(sql, managerSlug)
     if (!managerId) return NextResponse.json({ error: 'Manager not found' }, { status: 404 })
-    await sql`INSERT INTO budget_transactions (manager_id,year,amount,note) VALUES (${managerId},${year},${amount},${note??null})`
+    const txn = await sql`INSERT INTO budget_transactions (manager_id,year,amount,note) VALUES (${managerId},${year},${amount},${note??null}) RETURNING id`
+    await logAction('budget', `Budget ${amount > 0 ? '+' : ''}${amount} for ${managerSlug}: ${note ?? ''}`, { transactionId: txn[0]?.id })
     return NextResponse.json({ ok: true })
   }
 
@@ -108,16 +130,15 @@ export async function POST(request: NextRequest) {
     const { managerSlug, playerName, toSlot } = body
     const managerId = await getManagerId(sql, managerSlug)
     if (!managerId) return NextResponse.json({ error: 'Manager not found' }, { status: 404 })
-    // Case-insensitive player lookup — never create a new record for a move
     const playerRows = await sql`SELECT id FROM players WHERE LOWER(name) = LOWER(${playerName.trim()})`
     if (!playerRows.length) return NextResponse.json({ error: `Player not found: "${playerName}"` }, { status: 404 })
     const playerId = playerRows[0].id
-    const updated = await sql`
-      UPDATE roster_slots SET slot_type=${toSlot}, updated_at=${now}
-      WHERE player_id=${playerId} AND manager_id=${managerId} AND year=${year} AND slot_type != 'dropped'
-      RETURNING id
-    `
+    // Snapshot current slot_type before moving
+    const current = await sql`SELECT id, slot_type FROM roster_slots WHERE player_id=${playerId} AND manager_id=${managerId} AND year=${year} AND slot_type != 'dropped'`
+    if (!current.length) return NextResponse.json({ error: `No active roster slot found for "${playerName}" on this team in ${year}` }, { status: 404 })
+    const updated = await sql`UPDATE roster_slots SET slot_type=${toSlot}, updated_at=${now} WHERE player_id=${playerId} AND manager_id=${managerId} AND year=${year} AND slot_type != 'dropped' RETURNING id`
     if (!updated.length) return NextResponse.json({ error: `No active roster slot found for "${playerName}" on this team in ${year}` }, { status: 404 })
+    await logAction('il_move', `Moved ${playerName} (${managerSlug}): ${current[0].slot_type} → ${toSlot}`, { slotId: current[0].id, oldSlotType: current[0].slot_type })
     return NextResponse.json({ ok: true })
   }
 
@@ -127,7 +148,9 @@ export async function POST(request: NextRequest) {
     if (!managerId) return NextResponse.json({ error: 'Manager not found' }, { status: 404 })
     const playerId = await getOrCreatePlayer(sql, playerName)
     if (!playerId) return NextResponse.json({ error: 'Player not found' }, { status: 404 })
+    const current = await sql`SELECT id, salary FROM roster_slots WHERE player_id=${playerId} AND manager_id=${managerId} AND year=${year} AND slot_type!='dropped'`
     await sql`UPDATE roster_slots SET salary=${parseInt(newSalary)},updated_at=${now} WHERE player_id=${playerId} AND manager_id=${managerId} AND year=${year} AND slot_type!='dropped'`
+    await logAction('update_salary', `Salary update ${playerName} (${managerSlug}): $${current[0]?.salary} → $${newSalary}`, { slotId: current[0]?.id, oldSalary: current[0]?.salary })
     return NextResponse.json({ ok: true })
   }
 
@@ -138,10 +161,9 @@ export async function POST(request: NextRequest) {
     if (!managerId) return NextResponse.json({ error: 'Manager not found' }, { status: 404 })
     const playerId = await getOrCreatePlayer(sql, playerName)
     if (!playerId) return NextResponse.json({ error: 'Player not found' }, { status: 404 })
-    await sql`
-      UPDATE roster_slots SET is_franchise_player = ${value === true}
-      WHERE player_id = ${playerId} AND manager_id = ${managerId}
-    `
+    const current = await sql`SELECT id, is_franchise_player FROM roster_slots WHERE player_id=${playerId} AND manager_id=${managerId}`
+    await sql`UPDATE roster_slots SET is_franchise_player = ${value === true} WHERE player_id = ${playerId} AND manager_id = ${managerId}`
+    await logAction('set_franchise', `Franchise ${value ? 'granted' : 'removed'}: ${playerName} (${managerSlug})`, { slotIds: current.map(r => r.id), oldValue: current[0]?.is_franchise_player ?? false })
     return NextResponse.json({ ok: true })
   }
 
@@ -150,7 +172,8 @@ export async function POST(request: NextRequest) {
     const { managerSlug, delta, note } = body
     const managerId = await getManagerId(sql, managerSlug)
     if (!managerId) return NextResponse.json({ error: 'Manager not found' }, { status: 404 })
-    await sql`INSERT INTO keeper_slot_transactions (manager_id, year, delta, note) VALUES (${managerId}, ${year}, ${parseInt(delta)}, ${note ?? null})`
+    const txn = await sql`INSERT INTO keeper_slot_transactions (manager_id, year, delta, note) VALUES (${managerId}, ${year}, ${parseInt(delta)}, ${note ?? null}) RETURNING id`
+    await logAction('keeper_slots', `Keeper slots ${delta > 0 ? '+' : ''}${delta} for ${managerSlug}`, { transactionId: txn[0]?.id })
     return NextResponse.json({ ok: true })
   }
 
