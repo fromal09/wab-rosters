@@ -8,6 +8,7 @@ export default function AppHeader() {
   const navLinks = [
     { href: '/', label: 'League' },
     { href: '/history', label: 'History' },
+    { href: '/rules', label: 'Rules' },
     { href: '/admin', label: 'Commissioner' },
   ]
 

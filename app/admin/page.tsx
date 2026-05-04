@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import { MANAGERS, CURRENT_YEAR } from '@/lib/constants'
 
-type Tab = 'trade' | 'add-drop' | 'budget' | 'il' | 'salary' | 'franchise' | 'keeper-slots' | 'notes' | 'rename' | 'position' | 'bulk-link' | 'history'
+type Tab = 'trade' | 'add-drop' | 'budget' | 'il' | 'salary' | 'franchise' | 'keeper-slots' | 'notes' | 'rename' | 'position' | 'bulk-link' | 'history' | 'rules'
 
 // ── Light-mode form primitives ────────────────────────────────────────────────
 const inputStyle = {
@@ -575,6 +575,63 @@ function SetPositionTab() {
   )
 }
 
+function RulesTab() {
+  const [content, setContent] = useState('')
+  const [original, setOriginal] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
+
+  useEffect(() => {
+    fetch('/api/rules').then(r => r.json()).then(d => {
+      setContent(d.content ?? ''); setOriginal(d.content ?? '')
+    }).finally(() => setLoading(false))
+  }, [])
+
+  async function save() {
+    setSaving(true); setMsg(null)
+    const res = await fetch('/api/rules', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content }) })
+    const json = await res.json()
+    if (json.ok) { setMsg({ ok: true, text: 'Rules saved!' }); setOriginal(content) }
+    else setMsg({ ok: false, text: json.error ?? 'Save failed' })
+    setSaving(false)
+  }
+
+  const dirty = content !== original
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
+        <p style={{ margin: 0, fontSize: '0.83rem', color: '#6b7280' }}>
+          Edit the rules in Markdown. The public Rules page updates immediately on save.
+          <a href="/rules" target="_blank" rel="noreferrer" style={{ marginLeft: 8, color: '#1a56db', fontSize: '0.78rem' }}>Preview ↗</a>
+        </p>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          {dirty && <span style={{ fontSize: '0.75rem', color: '#b45309' }}>Unsaved changes</span>}
+          <Btn label="Save Rules" onClick={save} loading={saving} disabled={!dirty} />
+        </div>
+      </div>
+      {msg && <Status msg={msg} />}
+      {loading
+        ? <div style={{ color: '#9ca3af', fontSize: '0.83rem' }}>Loading…</div>
+        : (
+          <textarea
+            value={content}
+            onChange={e => setContent(e.target.value)}
+            style={{
+              width: '100%', minHeight: 560, padding: '12px 14px',
+              background: '#fff', border: '1px solid #d1d5db', borderRadius: 7,
+              color: '#111827', fontSize: '0.82rem', lineHeight: 1.6,
+              fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, monospace',
+              resize: 'vertical', outline: 'none',
+            }}
+          />
+        )
+      }
+    </div>
+  )
+}
+
 function BulkLinkTab() {
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<{ total: number; matched: number; unmatched: number; unmatchedNames: string[] } | null>(null)
@@ -770,6 +827,7 @@ export default function AdminPage() {
     { id: 'bulk-link',    label: '⚡ Auto-Link IDs' },
     { id: 'notes',        label: '📝 Notes' },
     { id: 'history',      label: '↩ Rollback' },
+    { id: 'rules',        label: '📋 Rules' },
   ]
 
   return (
@@ -811,6 +869,7 @@ export default function AdminPage() {
         {tab === 'bulk-link'    && <BulkLinkTab />}
         {tab === 'notes'        && <NotesTab />}
         {tab === 'history'      && <HistoryTab />}
+        {tab === 'rules'        && <RulesTab />}
       </div>
     </div>
   )
