@@ -342,10 +342,10 @@ export default function PlayerCard({ playerName, onClose }: Props) {
           <div style={{ padding: '8px 18px 12px', borderTop: '1px solid #f0f2f5', background: '#fafbfc', display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
             <span style={{ fontSize: '0.6rem', color: '#9ca3af', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Percentile</span>
             {[
-              { label: '≥90 Elite',  color: COLORS.pctElite,    bg: COLORS.pitchers.bg },
-              { label: '70–89 Good', color: COLORS.pctGood,     bg: COLORS.pitchers.bg },
-              { label: '45–69 Avg',  color: COLORS.pctAvg,      bg: COLORS.pos.OF.bg },
-              { label: '<45 Below',  color: COLORS.pctPoor,     bg: COLORS.deadCap.bg },
+              { label: '≥90 Elite',  color: COLORS.pctElite,    bg: '#dcfce7' },
+              { label: '70–89 Good', color: COLORS.pctGood,     bg: '#dcfce7' },
+              { label: '45–69 Avg',  color: COLORS.pctAvg,      bg: '#fef9c3' },
+              { label: '<45 Below',  color: COLORS.pctPoor,     bg: '#fee2e2' },
             ].map(s => (
               <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                 <span style={{ width: 10, height: 10, borderRadius: 2, background: s.bg, border: `1px solid ${s.color}40`, display: 'inline-block' }} />

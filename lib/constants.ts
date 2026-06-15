@@ -61,26 +61,25 @@ export const CURRENT_YEAR = 2026
 // Single source of truth — use these everywhere, never hardcode colors inline.
 
 export const COLORS = {
-  // Primary UI
-  blue:   '#1a56db',  // buttons, links, active states
-  blueBg: '#eff6ff',  // light blue backgrounds
+  blue:   '#1a56db',
+  blueBg: '#eff6ff',
 
-  // Finances segments (bar + text both light and dark bg)
-  hitters:     { bar: '#1a56db', text: '#1a56db', dark: '#60a5fa', bg: '#eff6ff' },
-  pitchers:    { bar: '#166534', text: '#166534', dark: '#4ade80', bg: '#dcfce7' },
-  ohtani:      { bar: '#7c3aed', text: '#7c3aed', dark: '#c4b5fd', bg: '#f3e8ff' },
-  deadCap:     { bar: '#b91c1c', text: '#b91c1c', dark: '#f87171', bg: '#fee2e2' },
-  capSpace:    {                  dark: '#4ade80',                              },
+  // Finances segments — one color each, used everywhere (bar, text, dark bg, light bg)
+  hitters:  '#1a56db',
+  pitchers: '#166534',
+  ohtani:   '#7c3aed',
+  deadCap:  '#b91c1c',
+  capSpace: '#4ade80',
 
-  // Cap space traffic light (% of budget)
-  spaceGood:   '#166534',  // ≥15%
-  spaceWarn:   '#854d0e',  // 5–14%
-  spaceDanger: '#b91c1c',  // <5%
+  // Cap space traffic light
+  spaceGood:   '#166534',
+  spaceWarn:   '#854d0e',
+  spaceDanger: '#b91c1c',
 
-  // Dead cap traffic light (% of budget)
-  deadHigh:    '#b91c1c',  // ≥20%
-  deadMid:     '#854d0e',  // 10–19%
-  deadLow:     '#6b7280',  // <10%
+  // Dead cap traffic light
+  deadHigh: '#b91c1c',
+  deadMid:  '#854d0e',
+  deadLow:  '#6b7280',
 
   // Position badge colors
   pos: {
@@ -95,11 +94,11 @@ export const COLORS = {
   },
 
   // Statcast percentile bars
-  pctElite:  '#166534',  // ≥90
-  pctGood:   '#15803d',  // 70–89
-  pctAvg:    '#854d0e',  // 45–69
-  pctBelowAvg: '#b45309', // 30–44
-  pctPoor:   '#b91c1c',  // <30
+  pctElite:    '#166534',
+  pctGood:     '#15803d',
+  pctAvg:      '#854d0e',
+  pctBelowAvg: '#b45309',
+  pctPoor:     '#b91c1c',
 
   // Semantic
   danger:  '#b91c1c',
