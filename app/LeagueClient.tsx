@@ -9,7 +9,9 @@ type View = 'cards' | 'rosters' | 'finances'
 
 interface TeamSummary {
   manager: { id: string; name: string; slug: string }
-  budget: number; salary: number; active_salary: number; dead_cap: number; cap_space: number
+  budget: number; salary: number; active_salary: number
+  pitcher_salary: number; hitter_salary: number; ohtani_salary: number
+  dead_cap: number; cap_space: number
   injured_count: number; dropped_count: number; ht_eligible_count: number
   keeper_slots: number
   notes: { id: string; note: string }[]
@@ -187,6 +189,10 @@ export default function LeagueClient({ teams, year }: { teams: TeamSummary[]; ye
         const leagueSalary  = teams.reduce((a, t) => a + t.active_salary, 0)
         const leagueDead    = teams.reduce((a, t) => a + t.dead_cap, 0)
         const leagueSpace   = teams.reduce((a, t) => a + t.cap_space, 0)
+        const leagueHitters = teams.reduce((a, t) => a + t.hitter_salary, 0)
+        const leaguePitchers= teams.reduce((a, t) => a + t.pitcher_salary, 0)
+        const leagueOhtani  = teams.reduce((a, t) => a + t.ohtani_salary, 0)
+        const hasOhtani     = leagueOhtani > 0
 
         function pctBar(activePct: number, deadPct: number, spacePct: number) {
           return (
@@ -194,6 +200,26 @@ export default function LeagueClient({ teams, year }: { teams: TeamSummary[]; ye
               <div style={{ width: `${activePct}%`, background: '#1a56db' }} />
               <div style={{ width: `${deadPct}%`,   background: '#b91c1c' }} />
               <div style={{ width: `${Math.max(spacePct,0)}%`, background: '#86efac' }} />
+            </div>
+          )
+        }
+
+        function SalaryBreakdown({ hitters, pitchers, ohtani, total }: { hitters: number; pitchers: number; ohtani: number; total: number }) {
+          if (total === 0) return null
+          return (
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
+              <div style={{ fontSize: '0.6rem', color: '#9ca3af', alignSelf: 'center', marginRight: 2 }}>Breakdown:</div>
+              <span style={{ fontSize: '0.7rem', fontWeight: 600, padding: '2px 8px', borderRadius: 4, background: '#eff6ff', color: '#1e40af' }}>
+                🏃 Hitters ${hitters} ({Math.round(hitters/total*100)}%)
+              </span>
+              <span style={{ fontSize: '0.7rem', fontWeight: 600, padding: '2px 8px', borderRadius: 4, background: '#f0fdf4', color: '#166534' }}>
+                ⚾ Pitchers ${pitchers} ({Math.round(pitchers/total*100)}%)
+              </span>
+              {ohtani > 0 && (
+                <span style={{ fontSize: '0.7rem', fontWeight: 600, padding: '2px 8px', borderRadius: 4, background: '#fdf4ff', color: '#7c3aed' }}>
+                  ✦ Ohtani ${ohtani}
+                </span>
+              )}
             </div>
           )
         }
@@ -207,10 +233,10 @@ export default function LeagueClient({ teams, year }: { teams: TeamSummary[]; ye
               </div>
               <div style={{ display: 'flex', gap: 28, flexWrap: 'wrap', marginBottom: 14 }}>
                 {[
-                  { label: 'Total Budget',  value: `$${leagueBudget}`, color: '#fff',     pct: null },
-                  { label: 'Active Salary', value: `$${leagueSalary}`, color: '#60a5fa',  pct: Math.round(leagueSalary / leagueBudget * 100) },
+                  { label: 'Total Budget',  value: `$${leagueBudget}`, color: '#fff',    pct: null },
+                  { label: 'Active Salary', value: `$${leagueSalary}`, color: '#60a5fa', pct: Math.round(leagueSalary / leagueBudget * 100) },
                   { label: 'Cap Space',     value: `$${leagueSpace}`,  color: leagueSpace / leagueBudget > 0.1 ? '#4ade80' : '#fbbf24', pct: Math.round(leagueSpace / leagueBudget * 100) },
-                  { label: 'Dead Cap',      value: `$${leagueDead}`,   color: '#f87171',  pct: Math.round(leagueDead / leagueBudget * 100) },
+                  { label: 'Dead Cap',      value: `$${leagueDead}`,   color: '#f87171', pct: Math.round(leagueDead / leagueBudget * 100) },
                 ].map(s => (
                   <div key={s.label}>
                     <div style={{ fontSize: '0.58rem', color: '#6b7280', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 3 }}>{s.label}</div>
@@ -224,13 +250,27 @@ export default function LeagueClient({ teams, year }: { teams: TeamSummary[]; ye
                 Math.round(leagueDead   / leagueBudget * 100),
                 Math.round(leagueSpace  / leagueBudget * 100),
               )}
-              <div style={{ display: 'flex', gap: 14, marginTop: 7 }}>
+              <div style={{ display: 'flex', gap: 14, marginTop: 7, marginBottom: 10 }}>
                 {[['#3b82f6','Active'],['#ef4444','Dead Cap'],['#86efac','Cap Space']].map(([c,l]) => (
                   <div key={l} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                     <div style={{ width: 8, height: 8, borderRadius: 2, background: c }} />
                     <span style={{ fontSize: '0.62rem', color: '#9ca3af' }}>{l}</span>
                   </div>
                 ))}
+              </div>
+              {/* League salary breakdown */}
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '0.7rem', fontWeight: 600, padding: '2px 8px', borderRadius: 4, background: 'rgba(59,130,246,0.2)', color: '#93c5fd' }}>
+                  🏃 Hitters ${leagueHitters} ({Math.round(leagueHitters/leagueSalary*100)}%)
+                </span>
+                <span style={{ fontSize: '0.7rem', fontWeight: 600, padding: '2px 8px', borderRadius: 4, background: 'rgba(74,222,128,0.2)', color: '#86efac' }}>
+                  ⚾ Pitchers ${leaguePitchers} ({Math.round(leaguePitchers/leagueSalary*100)}%)
+                </span>
+                {hasOhtani && (
+                  <span style={{ fontSize: '0.7rem', fontWeight: 600, padding: '2px 8px', borderRadius: 4, background: 'rgba(167,139,250,0.2)', color: '#c4b5fd' }}>
+                    ✦ Ohtani ${leagueOhtani}
+                  </span>
+                )}
               </div>
             </div>
 
@@ -253,7 +293,7 @@ export default function LeagueClient({ teams, year }: { teams: TeamSummary[]; ye
                     </span>
                   </div>
                   <div style={{ marginBottom: 12 }}>{pctBar(activePct, deadPct, spacePct)}</div>
-                  <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', marginBottom: 4 }}>
                     {[
                       { label: 'Active Salary', value: `$${t.active_salary}`, pct: activePct, color: '#374151' },
                       { label: 'Cap Space',      value: `$${t.cap_space}`,    pct: spacePct,  color: spaceColor },
@@ -266,6 +306,7 @@ export default function LeagueClient({ teams, year }: { teams: TeamSummary[]; ye
                       </div>
                     ))}
                   </div>
+                  <SalaryBreakdown hitters={t.hitter_salary} pitchers={t.pitcher_salary} ohtani={t.ohtani_salary} total={t.active_salary} />
                 </div>
               )
             })}

@@ -64,11 +64,24 @@ export async function getAllTeamSummaries(year = CURRENT_YEAR) {
       SUM(CASE WHEN rs.slot_type != 'dropped' THEN rs.salary ELSE 0 END)       AS active_salary,
       SUM(CASE WHEN rs.slot_type = 'dropped'
             THEN COALESCE(rs.dead_money, CEIL(rs.salary::float/2)) ELSE 0 END) AS dead_cap,
+      -- Salary breakdown by player type (active/IL only, not dropped)
+      SUM(CASE WHEN rs.slot_type != 'dropped'
+               AND TRIM(LOWER(p.name)) = 'shohei ohtani'
+               THEN rs.salary ELSE 0 END) AS ohtani_salary,
+      SUM(CASE WHEN rs.slot_type != 'dropped'
+               AND TRIM(LOWER(p.name)) != 'shohei ohtani'
+               AND SPLIT_PART(COALESCE(p.position,''), ',', 1) IN ('SP','RP','P')
+               THEN rs.salary ELSE 0 END) AS pitcher_salary,
+      SUM(CASE WHEN rs.slot_type != 'dropped'
+               AND TRIM(LOWER(p.name)) != 'shohei ohtani'
+               AND SPLIT_PART(COALESCE(p.position,''), ',', 1) NOT IN ('SP','RP','P')
+               THEN rs.salary ELSE 0 END) AS hitter_salary,
       COUNT(CASE WHEN rs.slot_type = 'IL' THEN 1 END)          AS injured_count,
       COUNT(CASE WHEN rs.slot_type = 'dropped' THEN 1 END)     AS dropped_count,
       COUNT(CASE WHEN rs.slot_type != 'dropped'
                  AND rs.service_year >= 1 THEN 1 END)          AS ht_eligible_count
     FROM roster_slots rs
+    JOIN players p ON p.id = rs.player_id
     WHERE rs.year = ${year}
     GROUP BY rs.manager_id
   `
@@ -108,8 +121,11 @@ export async function getAllTeamSummaries(year = CURRENT_YEAR) {
       manager: m as { id: string; name: string; slug: string },
       budget,
       salary,
-      active_salary: Number(s.active_salary ?? 0),
-      dead_cap:      Number(s.dead_cap ?? 0),
+      active_salary:  Number(s.active_salary  ?? 0),
+      pitcher_salary: Number(s.pitcher_salary ?? 0),
+      hitter_salary:  Number(s.hitter_salary  ?? 0),
+      ohtani_salary:  Number(s.ohtani_salary  ?? 0),
+      dead_cap:       Number(s.dead_cap       ?? 0),
       cap_space: budget - salary,
       injured_count: Number(s.injured_count ?? 0),
       dropped_count: Number(s.dropped_count ?? 0),
