@@ -70,20 +70,22 @@ export default function LeagueClient({ teams, year }: { teams: TeamSummary[]; ye
         </div>
       </div>
 
-      {/* Stats bar */}
-      <div style={{ display: 'flex', gap: 16, marginBottom: 16, padding: '10px 16px', background: '#fff', border: '1px solid #e4e7ec', borderRadius: 8, flexWrap: 'wrap' }}>
-        {[
-          { label: 'Season', value: String(year) },
-          { label: 'Teams', value: '10' },
-          { label: 'League Salary', value: `$${totalSalary.toLocaleString()}` },
-          { label: 'Avg Cap', value: `$${avgCap}` },
-        ].map(s => (
-          <div key={s.label} style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-            <span style={{ fontSize: '0.58rem', textTransform: 'uppercase', letterSpacing: '0.07em', color: '#9ca3af', fontWeight: 600 }}>{s.label}</span>
-            <span style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f1117', letterSpacing: '-0.02em' }}>{s.value}</span>
-          </div>
-        ))}
-      </div>
+      {/* Stats bar — hidden in finances view */}
+      {view !== 'finances' && (
+        <div style={{ display: 'flex', gap: 16, marginBottom: 16, padding: '10px 16px', background: '#fff', border: '1px solid #e4e7ec', borderRadius: 8, flexWrap: 'wrap' }}>
+          {[
+            { label: 'Season', value: String(year) },
+            { label: 'Teams', value: '10' },
+            { label: 'League Salary', value: `$${totalSalary.toLocaleString()}` },
+            { label: 'Avg Cap', value: `$${avgCap}` },
+          ].map(s => (
+            <div key={s.label} style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+              <span style={{ fontSize: '0.58rem', textTransform: 'uppercase', letterSpacing: '0.07em', color: '#9ca3af', fontWeight: 600 }}>{s.label}</span>
+              <span style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f1117', letterSpacing: '-0.02em' }}>{s.value}</span>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* CARDS VIEW */}
       {view === 'cards' && (
@@ -194,12 +196,19 @@ export default function LeagueClient({ teams, year }: { teams: TeamSummary[]; ye
         const leagueOhtani  = teams.reduce((a, t) => a + t.ohtani_salary, 0)
         const hasOhtani     = leagueOhtani > 0
 
-        function pctBar(activePct: number, deadPct: number, spacePct: number) {
+        function pctBar(budget: number, hitters: number, pitchers: number, ohtani: number, dead: number, space: number) {
+          const hp = Math.round(hitters / budget * 100)
+          const pp = Math.round(pitchers / budget * 100)
+          const op = Math.round(ohtani   / budget * 100)
+          const dp = Math.round(dead     / budget * 100)
+          const sp = Math.max(Math.round(space   / budget * 100), 0)
           return (
-            <div style={{ height: 8, borderRadius: 4, overflow: 'hidden', background: '#f0f2f5', display: 'flex', width: '100%' }}>
-              <div style={{ width: `${activePct}%`, background: '#1a56db' }} />
-              <div style={{ width: `${deadPct}%`,   background: '#b91c1c' }} />
-              <div style={{ width: `${Math.max(spacePct,0)}%`, background: '#86efac' }} />
+            <div style={{ height: 9, borderRadius: 4, overflow: 'hidden', background: '#f0f2f5', display: 'flex', width: '100%' }}>
+              <div style={{ width: `${hp}%`, background: '#2563eb' }} title={`Hitters $${hitters}`} />
+              <div style={{ width: `${pp}%`, background: '#16a34a' }} title={`Pitchers $${pitchers}`} />
+              {op > 0 && <div style={{ width: `${op}%`, background: '#7c3aed' }} title={`Ohtani $${ohtani}`} />}
+              <div style={{ width: `${dp}%`, background: '#b91c1c' }} title={`Dead cap $${dead}`} />
+              <div style={{ width: `${sp}%`, background: '#bbf7d0' }} title={`Cap space $${space}`} />
             </div>
           )
         }
@@ -245,18 +254,17 @@ export default function LeagueClient({ teams, year }: { teams: TeamSummary[]; ye
                   </div>
                 ))}
               </div>
-              {pctBar(
-                Math.round(leagueSalary / leagueBudget * 100),
-                Math.round(leagueDead   / leagueBudget * 100),
-                Math.round(leagueSpace  / leagueBudget * 100),
-              )}
+              {pctBar(leagueBudget, leagueHitters, leaguePitchers, leagueOhtani, leagueDead, leagueSpace)}
               <div style={{ display: 'flex', gap: 14, marginTop: 7, marginBottom: 10 }}>
-                {[['#3b82f6','Active'],['#ef4444','Dead Cap'],['#86efac','Cap Space']].map(([c,l]) => (
-                  <div key={l} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <div style={{ width: 8, height: 8, borderRadius: 2, background: c }} />
-                    <span style={{ fontSize: '0.62rem', color: '#9ca3af' }}>{l}</span>
-                  </div>
-                ))}
+                {[['#2563eb','Hitters'],['#16a34a','Pitchers'],['#7c3aed','Ohtani'],['#b91c1c','Dead Cap'],['#bbf7d0','Cap Space']].map(([c,l]) => {
+                  if (l === 'Ohtani' && !hasOhtani) return null
+                  return (
+                    <div key={l} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <div style={{ width: 8, height: 8, borderRadius: 2, background: c }} />
+                      <span style={{ fontSize: '0.62rem', color: '#9ca3af' }}>{l}</span>
+                    </div>
+                  )
+                })}
               </div>
               {/* League salary breakdown */}
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -292,7 +300,7 @@ export default function LeagueClient({ teams, year }: { teams: TeamSummary[]; ye
                       Budget <strong style={{ color: '#0f1117', fontSize: '1rem' }}>${t.budget}</strong>
                     </span>
                   </div>
-                  <div style={{ marginBottom: 12 }}>{pctBar(activePct, deadPct, spacePct)}</div>
+                  <div style={{ marginBottom: 12 }}>{pctBar(t.budget, t.hitter_salary, t.pitcher_salary, t.ohtani_salary, t.dead_cap, t.cap_space)}</div>
                   <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', marginBottom: 4 }}>
                     {[
                       { label: 'Active Salary', value: `$${t.active_salary}`, pct: activePct, color: '#374151' },
