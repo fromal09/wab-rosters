@@ -61,6 +61,9 @@ export async function getAllTeamSummaries(year = CURRENT_YEAR) {
       SUM(CASE WHEN rs.slot_type != 'dropped' THEN rs.salary ELSE 0 END) +
         SUM(CASE WHEN rs.slot_type = 'dropped'
             THEN COALESCE(rs.dead_money, CEIL(rs.salary::float/2)) ELSE 0 END) AS total_salary,
+      SUM(CASE WHEN rs.slot_type != 'dropped' THEN rs.salary ELSE 0 END)       AS active_salary,
+      SUM(CASE WHEN rs.slot_type = 'dropped'
+            THEN COALESCE(rs.dead_money, CEIL(rs.salary::float/2)) ELSE 0 END) AS dead_cap,
       COUNT(CASE WHEN rs.slot_type = 'IL' THEN 1 END)          AS injured_count,
       COUNT(CASE WHEN rs.slot_type = 'dropped' THEN 1 END)     AS dropped_count,
       COUNT(CASE WHEN rs.slot_type != 'dropped'
@@ -105,6 +108,8 @@ export async function getAllTeamSummaries(year = CURRENT_YEAR) {
       manager: m as { id: string; name: string; slug: string },
       budget,
       salary,
+      active_salary: Number(s.active_salary ?? 0),
+      dead_cap:      Number(s.dead_cap ?? 0),
       cap_space: budget - salary,
       injured_count: Number(s.injured_count ?? 0),
       dropped_count: Number(s.dropped_count ?? 0),

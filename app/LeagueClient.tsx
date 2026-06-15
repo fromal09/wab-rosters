@@ -9,7 +9,7 @@ type View = 'cards' | 'rosters' | 'finances'
 
 interface TeamSummary {
   manager: { id: string; name: string; slug: string }
-  budget: number; salary: number; cap_space: number
+  budget: number; salary: number; active_salary: number; dead_cap: number; cap_space: number
   injured_count: number; dropped_count: number; ht_eligible_count: number
   keeper_slots: number
   notes: { id: string; note: string }[]
@@ -182,24 +182,11 @@ export default function LeagueClient({ teams, year }: { teams: TeamSummary[]; ye
       )}
 
       {view === 'finances' && (() => {
-        const leagueBudget = teams.reduce((a, t) => a + t.budget, 0)
-        const leagueSalary = teams.reduce((a, t) => a + t.salary, 0)
-        const leagueDead   = teams.reduce((a, t) => a + (t.salary > t.budget ? 0 : 0), 0) // computed below per team
-        const sorted = [...teams].sort((a, b) => (b.budget - b.salary) - (a.budget - a.salary))
-
-        // Compute dead cap per team from rosters view data if loaded, else estimate from TeamSummary
-        function deadCap(t: TeamSummary): number {
-          const rd = rosters[t.manager.slug]
-          if (rd?.roster?.length) {
-            return rd.roster
-              .filter(p => p.slot_type === 'dropped')
-              .reduce((a, p) => a + (p.dead_money ?? Math.ceil(p.salary / 2)), 0)
-          }
-          return 0
-        }
-
-        const totalDead = sorted.reduce((a, t) => a + deadCap(t), 0)
-        const totalCapSpace = leagueBudget - leagueSalary
+        const sorted = [...teams].sort((a, b) => b.cap_space - a.cap_space)
+        const leagueBudget  = teams.reduce((a, t) => a + t.budget, 0)
+        const leagueSalary  = teams.reduce((a, t) => a + t.active_salary, 0)
+        const leagueDead    = teams.reduce((a, t) => a + t.dead_cap, 0)
+        const leagueSpace   = teams.reduce((a, t) => a + t.cap_space, 0)
 
         function pctBar(activePct: number, deadPct: number, spacePct: number) {
           return (
@@ -220,22 +207,22 @@ export default function LeagueClient({ teams, year }: { teams: TeamSummary[]; ye
               </div>
               <div style={{ display: 'flex', gap: 28, flexWrap: 'wrap', marginBottom: 14 }}>
                 {[
-                  { label: 'Total Budget',  value: `$${leagueBudget}`, color: '#fff' },
-                  { label: 'Active Salary', value: `$${leagueSalary}`, pct: Math.round(leagueSalary/leagueBudget*100), color: '#60a5fa' },
-                  { label: 'Cap Space',     value: `$${totalCapSpace}`, pct: Math.round(totalCapSpace/leagueBudget*100), color: totalCapSpace/leagueBudget > 0.1 ? '#4ade80' : '#fbbf24' },
-                  { label: 'Dead Cap',      value: `$${totalDead}`,    pct: Math.round(totalDead/leagueBudget*100),    color: '#f87171' },
+                  { label: 'Total Budget',  value: `$${leagueBudget}`, color: '#fff',     pct: null },
+                  { label: 'Active Salary', value: `$${leagueSalary}`, color: '#60a5fa',  pct: Math.round(leagueSalary / leagueBudget * 100) },
+                  { label: 'Cap Space',     value: `$${leagueSpace}`,  color: leagueSpace / leagueBudget > 0.1 ? '#4ade80' : '#fbbf24', pct: Math.round(leagueSpace / leagueBudget * 100) },
+                  { label: 'Dead Cap',      value: `$${leagueDead}`,   color: '#f87171',  pct: Math.round(leagueDead / leagueBudget * 100) },
                 ].map(s => (
                   <div key={s.label}>
                     <div style={{ fontSize: '0.58rem', color: '#6b7280', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 3 }}>{s.label}</div>
                     <div style={{ fontSize: '1.2rem', fontWeight: 800, color: s.color }}>{s.value}</div>
-                    {'pct' in s && <div style={{ fontSize: '0.68rem', color: s.color, marginTop: 1 }}>{s.pct}% of budget</div>}
+                    {s.pct != null && <div style={{ fontSize: '0.68rem', color: s.color, marginTop: 1 }}>{s.pct}% of budget</div>}
                   </div>
                 ))}
               </div>
               {pctBar(
-                Math.round(leagueSalary/leagueBudget*100),
-                Math.round(totalDead/leagueBudget*100),
-                Math.round(totalCapSpace/leagueBudget*100),
+                Math.round(leagueSalary / leagueBudget * 100),
+                Math.round(leagueDead   / leagueBudget * 100),
+                Math.round(leagueSpace  / leagueBudget * 100),
               )}
               <div style={{ display: 'flex', gap: 14, marginTop: 7 }}>
                 {[['#3b82f6','Active'],['#ef4444','Dead Cap'],['#86efac','Cap Space']].map(([c,l]) => (
@@ -247,13 +234,11 @@ export default function LeagueClient({ teams, year }: { teams: TeamSummary[]; ye
               </div>
             </div>
 
-            {/* Team rows */}
+            {/* Team rows sorted by cap space desc */}
             {sorted.map((t, i) => {
-              const dead     = deadCap(t)
-              const capSpace = t.budget - t.salary
-              const activePct = Math.round(t.salary  / t.budget * 100)
-              const deadPct   = Math.round(dead      / t.budget * 100)
-              const spacePct  = Math.round(capSpace  / t.budget * 100)
+              const activePct = Math.round(t.active_salary / t.budget * 100)
+              const deadPct   = Math.round(t.dead_cap      / t.budget * 100)
+              const spacePct  = Math.round(t.cap_space     / t.budget * 100)
               const spaceColor = spacePct >= 15 ? '#166534' : spacePct >= 5 ? '#854d0e' : '#b91c1c'
               const deadColor  = deadPct  >= 20 ? '#b91c1c' : deadPct  >= 10 ? '#854d0e' : '#6b7280'
               return (
@@ -263,17 +248,16 @@ export default function LeagueClient({ teams, year }: { teams: TeamSummary[]; ye
                       <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#9ca3af', minWidth: 16 }}>#{i+1}</span>
                       <span style={{ fontSize: '0.95rem', fontWeight: 700, color: '#0f1117' }}>{t.manager.name}</span>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-                      <span style={{ fontSize: '0.58rem', color: '#9ca3af', fontWeight: 600, textTransform: 'uppercase' }}>Budget</span>
-                      <span style={{ fontSize: '1rem', fontWeight: 800, color: '#0f1117' }}>${t.budget}</span>
-                    </div>
+                    <span style={{ fontSize: '0.58rem', color: '#9ca3af', fontWeight: 600, textTransform: 'uppercase' }}>
+                      Budget <strong style={{ color: '#0f1117', fontSize: '1rem' }}>${t.budget}</strong>
+                    </span>
                   </div>
                   <div style={{ marginBottom: 12 }}>{pctBar(activePct, deadPct, spacePct)}</div>
-                  <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
                     {[
-                      { label: 'Active Salary', value: `$${t.salary}`,  pct: activePct, color: '#374151' },
-                      { label: 'Cap Space',      value: `$${capSpace}`, pct: spacePct,  color: spaceColor },
-                      { label: 'Dead Cap',       value: `$${dead}`,     pct: deadPct,   color: deadColor },
+                      { label: 'Active Salary', value: `$${t.active_salary}`, pct: activePct, color: '#374151' },
+                      { label: 'Cap Space',      value: `$${t.cap_space}`,    pct: spacePct,  color: spaceColor },
+                      { label: 'Dead Cap',       value: `$${t.dead_cap}`,     pct: deadPct,   color: deadColor },
                     ].map(s => (
                       <div key={s.label}>
                         <div style={{ fontSize: '0.58rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: '#9ca3af', marginBottom: 2 }}>{s.label}</div>
