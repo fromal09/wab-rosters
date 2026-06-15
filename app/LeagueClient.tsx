@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import TeamCard from '@/components/TeamCard'
 import RosterSection from '@/components/RosterSection'
 import PlayerCard from '@/components/PlayerCard'
-import { SVC_COLORS, CURRENT_YEAR } from '@/lib/constants'
+import { SVC_COLORS, CURRENT_YEAR, COLORS, capSpaceColor, deadCapColor } from '@/lib/constants'
 
 type View = 'cards' | 'rosters' | 'finances'
 
@@ -202,10 +202,10 @@ export default function LeagueClient({ teams, year }: { teams: TeamSummary[]; ye
         function SegBar({ budget, hitters, pitchers, ohtani, dead, space }: { budget: number; hitters: number; pitchers: number; ohtani: number; dead: number; space: number }) {
           return (
             <div style={{ height: 9, borderRadius: 4, overflow: 'hidden', background: '#f0f2f5', display: 'flex', width: '100%' }}>
-              <div style={{ width: `${p(hitters,budget)}%`,  background: '#2563eb' }} />
-              <div style={{ width: `${p(pitchers,budget)}%`, background: '#16a34a' }} />
-              {ohtani > 0 && <div style={{ width: `${p(ohtani,budget)}%`, background: '#7c3aed' }} />}
-              <div style={{ width: `${p(dead,budget)}%`,     background: '#b91c1c' }} />
+              <div style={{ width: `${p(hitters,budget)}%`,  background: COLORS.hitters.bar }} />
+              <div style={{ width: `${p(pitchers,budget)}%`, background: COLORS.pitchers.bar }} />
+              {ohtani > 0 && <div style={{ width: `${p(ohtani,budget)}%`, background: COLORS.ohtani.bar }} />}
+              <div style={{ width: `${p(dead,budget)}%`,     background: COLORS.deadCap.bar }} />
               <div style={{ width: `${Math.max(p(space,budget),0)}%`, background: '#bbf7d0' }} />
             </div>
           )
@@ -213,21 +213,22 @@ export default function LeagueClient({ teams, year }: { teams: TeamSummary[]; ye
 
         // Stat tile used in both league and team rows
         function Tile({ label, value, pct, color, dark = false }: { label: string; value: string; pct: number; color: string; dark?: boolean }) {
-          const labelColor = dark ? '#6b7280' : '#9ca3af'
-          const pctColor   = dark ? color      : color
+          const labelColor = dark ? '#6b7280' : COLORS.muted
           return (
             <div>
               <div style={{ fontSize: '0.58rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: labelColor, marginBottom: 2 }}>{label}</div>
               <div style={{ fontSize: '0.95rem', fontWeight: 800, color, letterSpacing: '-0.01em' }}>{value}</div>
-              <div style={{ fontSize: '0.68rem', fontWeight: 600, color: pctColor }}>{pct}% of budget</div>
+              <div style={{ fontSize: '0.68rem', fontWeight: 600, color }}>{pct}% of budget</div>
             </div>
           )
         }
 
         const LEGEND = [
-          ['#2563eb','Hitters'], ['#16a34a','Pitchers'],
-          ...(hasOhtani ? [['#7c3aed','Ohtani']] : []),
-          ['#b91c1c','Dead Cap'], ['#bbf7d0','Cap Space'],
+          [COLORS.hitters.bar, 'Hitters'],
+          [COLORS.pitchers.bar, 'Pitchers'],
+          ...(hasOhtani ? [[COLORS.ohtani.bar, 'Ohtani']] : []),
+          [COLORS.deadCap.bar, 'Dead Cap'],
+          ['#bbf7d0', 'Cap Space'],
         ]
 
         return (
@@ -239,11 +240,11 @@ export default function LeagueClient({ teams, year }: { teams: TeamSummary[]; ye
                 <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>Total Budget <strong style={{ color: '#fff', fontSize: '1rem' }}>${L.budget}</strong></div>
               </div>
               <div style={{ display: 'flex', gap: 22, flexWrap: 'wrap', marginBottom: 14 }}>
-                <Tile label="Hitters"  value={`$${L.hitters}`}  pct={p(L.hitters,L.budget)}  color="#60a5fa" dark />
-                <Tile label="Pitchers" value={`$${L.pitchers}`} pct={p(L.pitchers,L.budget)} color="#4ade80" dark />
-                {hasOhtani && <Tile label="Ohtani" value={`$${L.ohtani}`} pct={p(L.ohtani,L.budget)} color="#c4b5fd" dark />}
-                <Tile label="Dead Cap" value={`$${L.dead}`}     pct={p(L.dead,L.budget)}     color="#f87171" dark />
-                <Tile label="Cap Space" value={`$${L.space}`}   pct={p(L.space,L.budget)}    color={p(L.space,L.budget) >= 10 ? '#4ade80' : '#fbbf24'} dark />
+                <Tile label="Hitters"  value={`$${L.hitters}`}  pct={p(L.hitters,L.budget)}  color={COLORS.hitters.dark}  dark />
+                <Tile label="Pitchers" value={`$${L.pitchers}`} pct={p(L.pitchers,L.budget)} color={COLORS.pitchers.dark} dark />
+                {hasOhtani && <Tile label="Ohtani" value={`$${L.ohtani}`} pct={p(L.ohtani,L.budget)} color={COLORS.ohtani.dark} dark />}
+                <Tile label="Dead Cap"  value={`$${L.dead}`}   pct={p(L.dead,L.budget)}   color={COLORS.deadCap.dark} dark />
+                <Tile label="Cap Space" value={`$${L.space}`}  pct={p(L.space,L.budget)}  color={p(L.space,L.budget) >= 10 ? COLORS.pitchers.dark : '#fbbf24'} dark />
               </div>
               <SegBar budget={L.budget} hitters={L.hitters} pitchers={L.pitchers} ohtani={L.ohtani} dead={L.dead} space={L.space} />
               <div style={{ display: 'flex', gap: 14, marginTop: 8, flexWrap: 'wrap' }}>
@@ -276,11 +277,11 @@ export default function LeagueClient({ teams, year }: { teams: TeamSummary[]; ye
                     <SegBar budget={t.budget} hitters={t.hitter_salary} pitchers={t.pitcher_salary} ohtani={t.ohtani_salary} dead={t.dead_cap} space={t.cap_space} />
                   </div>
                   <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap' }}>
-                    <Tile label="Hitters"   value={`$${t.hitter_salary}`}  pct={p(t.hitter_salary,t.budget)}  color="#1d4ed8" />
-                    <Tile label="Pitchers"  value={`$${t.pitcher_salary}`} pct={p(t.pitcher_salary,t.budget)} color="#15803d" />
-                    {teamHasOhtani && <Tile label="Ohtani" value={`$${t.ohtani_salary}`} pct={p(t.ohtani_salary,t.budget)} color="#7c3aed" />}
-                    <Tile label="Dead Cap"  value={`$${t.dead_cap}`}       pct={p(t.dead_cap,t.budget)}       color={deadColor} />
-                    <Tile label="Cap Space" value={`$${t.cap_space}`}      pct={p(t.cap_space,t.budget)}      color={spaceColor} />
+                    <Tile label="Hitters"   value={`$${t.hitter_salary}`}  pct={p(t.hitter_salary,t.budget)}  color={COLORS.hitters.text} />
+                    <Tile label="Pitchers"  value={`$${t.pitcher_salary}`} pct={p(t.pitcher_salary,t.budget)} color={COLORS.pitchers.text} />
+                    {teamHasOhtani && <Tile label="Ohtani" value={`$${t.ohtani_salary}`} pct={p(t.ohtani_salary,t.budget)} color={COLORS.ohtani.text} />}
+                    <Tile label="Dead Cap"  value={`$${t.dead_cap}`}       pct={p(t.dead_cap,t.budget)}       color={deadCapColor(p(t.dead_cap,t.budget))} />
+                    <Tile label="Cap Space" value={`$${t.cap_space}`}      pct={p(t.cap_space,t.budget)}      color={capSpaceColor(p(t.cap_space,t.budget))} />
                   </div>
                 </div>
               )

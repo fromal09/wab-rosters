@@ -1,5 +1,5 @@
 'use client'
-import { getServiceYearColor, getKeeperPrice } from '@/lib/constants'
+import { getServiceYearColor, getKeeperPrice, posStyle, COLORS } from '@/lib/constants'
 import ServiceYearBadge from './ServiceYearBadge'
 
 interface Props {
@@ -9,16 +9,6 @@ interface Props {
   deadMoney?: number | null
   position?: string | null
   onClick?: () => void
-}
-
-function posStyle(pos: string): { bg: string; color: string } {
-  const p = pos.split(',')[0].trim()
-  if (p === 'SP')                                    return { bg: '#dbeafe', color: '#1e40af' }
-  if (['RP','P'].includes(p))                        return { bg: '#e0e7ff', color: '#3730a3' }
-  if (p === 'C')                                     return { bg: '#f3e8ff', color: '#6b21a8' }
-  if (['1B','2B','3B','SS'].includes(p))             return { bg: '#dcfce7', color: '#166534' }
-  if (['LF','CF','RF','OF','DH'].includes(p))        return { bg: '#fef9c3', color: '#854d0e' }
-  return { bg: '#f6f7f9', color: '#6b7280' }
 }
 
 function formatPos(pos: string): string {
@@ -38,19 +28,16 @@ export default function PlayerRow({ name, serviceYear, salary, slotType, isFranc
   const pStyle = displayPos ? posStyle(position!) : null
 
   return (
-    <tr
-      onClick={onClick}
-      style={{ background: rowBg, cursor: onClick ? 'pointer' : 'default' }}
-    >
+    <tr onClick={onClick} style={{ background: rowBg, cursor: onClick ? 'pointer' : 'default' }}>
       <td style={{ padding: 0, width: 5, background: svcColor, opacity: isDropped ? 0.35 : 1 }} />
       <td style={{ padding: '3px 8px 3px 7px' }}>
         <span className={isFranchise ? 'franchise-player' : ''} style={{
-          color: isDropped ? '#9ca3af' : '#0f1117', fontSize: '0.81rem',
+          color: isDropped ? COLORS.muted : '#0f1117', fontSize: '0.81rem',
           display: 'flex', alignItems: 'center', gap: 5,
           textDecoration: isDropped ? 'line-through' : 'none', textDecorationColor: '#d1d5db',
         }}>
           {name}
-          {isFranchise && <span style={{ color: '#1a56db', fontSize: '0.6rem', flexShrink: 0 }}>★</span>}
+          {isFranchise && <span style={{ color: COLORS.blue, fontSize: '0.6rem', flexShrink: 0 }}>★</span>}
         </span>
       </td>
       <td style={{ padding: '3px 5px', textAlign: 'center', width: 64 }}>
@@ -59,7 +46,7 @@ export default function PlayerRow({ name, serviceYear, salary, slotType, isFranc
             display: 'inline-block', fontSize: '0.57rem', fontWeight: 700,
             padding: '1px 5px', borderRadius: 3, letterSpacing: '0.01em',
             background: pStyle.bg, color: pStyle.color,
-            border: `1px solid ${pStyle.color}40`, whiteSpace: 'nowrap',
+            border: `1px solid ${pStyle.border}`, whiteSpace: 'nowrap',
           }}>
             {displayPos}
           </span>
@@ -71,12 +58,12 @@ export default function PlayerRow({ name, serviceYear, salary, slotType, isFranc
         <ServiceYearBadge year={serviceYear} />
       </td>
       <td style={{ padding: '3px 8px', textAlign: 'right', width: 48, fontVariantNumeric: 'tabular-nums' }}>
-        <span style={{ fontSize: '0.8rem', fontWeight: 600, color: isDropped ? '#9ca3af' : '#374151' }}>${salary}</span>
+        <span style={{ fontSize: '0.8rem', fontWeight: 600, color: isDropped ? COLORS.neutral : '#374151' }}>${salary}</span>
       </td>
       <td style={{ padding: '3px 8px', textAlign: 'right', width: 52, fontVariantNumeric: 'tabular-nums' }}>
         {isDropped
-          ? <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#b91c1c' }}>${deadMoneyAmt}</span>
-          : <span style={{ fontSize: '0.79rem', color: '#9ca3af' }}>${keeperPrice}</span>
+          ? <span style={{ fontSize: '0.8rem', fontWeight: 600, color: COLORS.danger }}>${deadMoneyAmt}</span>
+          : <span style={{ fontSize: '0.79rem', color: COLORS.muted }}>${keeperPrice}</span>
         }
       </td>
     </tr>

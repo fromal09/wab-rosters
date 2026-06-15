@@ -1,16 +1,13 @@
 'use client'
 import { useEffect, useState, useCallback } from 'react'
+import { COLORS, pctColor as getPctColor, posStyle as getPosStyle } from '@/lib/constants'
 
 interface Props { playerName: string | null; onClose: () => void }
 
-// ── Percentile color scale ────────────────────────────────────────────────────
+// ── Percentile color scale (from constants) ─────────────────────────────────
 function pctColor(pct: number | null): string {
-  if (pct == null) return '#9ca3af'
-  if (pct >= 90)   return '#166534'
-  if (pct >= 70)   return '#15803d'
-  if (pct >= 45)   return '#854d0e'
-  if (pct >= 30)   return '#b45309'
-  return '#b91c1c'
+  if (pct == null) return COLORS.muted
+  return getPctColor(pct)
 }
 function pctBg(pct: number | null): string {
   if (pct == null) return '#f6f7f9'
@@ -232,13 +229,14 @@ export default function PlayerCard({ playerName, onClose }: Props) {
               {(player?.name as string) ?? playerName}
             </div>
             <div style={{ marginTop: 4, display: 'flex', gap: 7, alignItems: 'center' }}>
-              {pos && (
-                <span style={{ fontSize: '0.68rem', fontWeight: 700, padding: '1px 7px', borderRadius: 4,
-                  background: isPitcher ? '#dbeafe' : '#dcfce7', color: isPitcher ? '#1e40af' : '#166534',
-                  border: `1px solid ${isPitcher ? '#bfdbfe' : '#bbf7d0'}` }}>
-                  {pos}
-                </span>
-              )}
+              {pos && (() => {
+                const ps = getPosStyle(pos)
+                return (
+                  <span style={{ fontSize: '0.68rem', fontWeight: 700, padding: '1px 7px', borderRadius: 4, background: ps.bg, color: ps.color, border: `1px solid ${ps.border}` }}>
+                    {pos}
+                  </span>
+                )
+              })()}
               {teamStr && <span style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: 600 }}>{teamStr}</span>}
             </div>
           </div>
@@ -343,7 +341,12 @@ export default function PlayerCard({ playerName, onClose }: Props) {
         {bars.length > 0 && (
           <div style={{ padding: '8px 18px 12px', borderTop: '1px solid #f0f2f5', background: '#fafbfc', display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
             <span style={{ fontSize: '0.6rem', color: '#9ca3af', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Percentile</span>
-            {[{ label: '≥90 Elite', color: '#166534', bg: '#dcfce7' }, { label: '70–89 Good', color: '#15803d', bg: '#dcfce7' }, { label: '45–69 Avg', color: '#854d0e', bg: '#fef9c3' }, { label: '<45 Below', color: '#b91c1c', bg: '#fee2e2' }].map(s => (
+            {[
+              { label: '≥90 Elite',  color: COLORS.pctElite,    bg: COLORS.pitchers.bg },
+              { label: '70–89 Good', color: COLORS.pctGood,     bg: COLORS.pitchers.bg },
+              { label: '45–69 Avg',  color: COLORS.pctAvg,      bg: COLORS.pos.OF.bg },
+              { label: '<45 Below',  color: COLORS.pctPoor,     bg: COLORS.deadCap.bg },
+            ].map(s => (
               <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                 <span style={{ width: 10, height: 10, borderRadius: 2, background: s.bg, border: `1px solid ${s.color}40`, display: 'inline-block' }} />
                 <span style={{ fontSize: '0.65rem', color: '#6b7280' }}>{s.label}</span>

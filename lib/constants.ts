@@ -57,6 +57,88 @@ export function getTierForYear(year: number): Tier {
 
 export const CURRENT_YEAR = 2026
 
+// ── App-wide color tokens ────────────────────────────────────────────────────
+// Single source of truth — use these everywhere, never hardcode colors inline.
+
+export const COLORS = {
+  // Primary UI
+  blue:   '#1a56db',  // buttons, links, active states
+  blueBg: '#eff6ff',  // light blue backgrounds
+
+  // Finances segments (bar + text both light and dark bg)
+  hitters:     { bar: '#1a56db', text: '#1a56db', dark: '#60a5fa', bg: '#eff6ff' },
+  pitchers:    { bar: '#166534', text: '#166534', dark: '#4ade80', bg: '#dcfce7' },
+  ohtani:      { bar: '#7c3aed', text: '#7c3aed', dark: '#c4b5fd', bg: '#f3e8ff' },
+  deadCap:     { bar: '#b91c1c', text: '#b91c1c', dark: '#f87171', bg: '#fee2e2' },
+  capSpace:    {                  dark: '#4ade80',                              },
+
+  // Cap space traffic light (% of budget)
+  spaceGood:   '#166534',  // ≥15%
+  spaceWarn:   '#854d0e',  // 5–14%
+  spaceDanger: '#b91c1c',  // <5%
+
+  // Dead cap traffic light (% of budget)
+  deadHigh:    '#b91c1c',  // ≥20%
+  deadMid:     '#854d0e',  // 10–19%
+  deadLow:     '#6b7280',  // <10%
+
+  // Position badge colors
+  pos: {
+    SP:  { bg: '#dbeafe', text: '#1e40af', border: '#bfdbfe' },
+    RP:  { bg: '#e0e7ff', text: '#3730a3', border: '#c7d2fe' },
+    P:   { bg: '#e0e7ff', text: '#3730a3', border: '#c7d2fe' },
+    C:   { bg: '#f3e8ff', text: '#6b21a8', border: '#e9d5ff' },
+    IF:  { bg: '#dcfce7', text: '#166534', border: '#bbf7d0' },
+    OF:  { bg: '#fef9c3', text: '#854d0e', border: '#fef08a' },
+    DH:  { bg: '#fef9c3', text: '#854d0e', border: '#fef08a' },
+    DEF: { bg: '#f6f7f9', text: '#6b7280', border: '#e4e7ec' },
+  },
+
+  // Statcast percentile bars
+  pctElite:  '#166534',  // ≥90
+  pctGood:   '#15803d',  // 70–89
+  pctAvg:    '#854d0e',  // 45–69
+  pctBelowAvg: '#b45309', // 30–44
+  pctPoor:   '#b91c1c',  // <30
+
+  // Semantic
+  danger:  '#b91c1c',
+  warning: '#854d0e',
+  success: '#166534',
+  neutral: '#6b7280',
+  muted:   '#9ca3af',
+}
+
+export function capSpaceColor(pct: number): string {
+  if (pct >= 15) return COLORS.spaceGood
+  if (pct >= 5)  return COLORS.spaceWarn
+  return COLORS.spaceDanger
+}
+
+export function deadCapColor(pct: number): string {
+  if (pct >= 20) return COLORS.deadHigh
+  if (pct >= 10) return COLORS.deadMid
+  return COLORS.deadLow
+}
+
+export function pctColor(pct: number): string {
+  if (pct >= 90) return COLORS.pctElite
+  if (pct >= 70) return COLORS.pctGood
+  if (pct >= 45) return COLORS.pctAvg
+  if (pct >= 30) return COLORS.pctBelowAvg
+  return COLORS.pctPoor
+}
+
+export function posStyle(pos: string): { bg: string; color: string; border: string } {
+  const p = pos.split(',')[0].trim()
+  if (p === 'SP')                                   return { bg: COLORS.pos.SP.bg,  color: COLORS.pos.SP.text,  border: COLORS.pos.SP.border }
+  if (['RP','P'].includes(p))                       return { bg: COLORS.pos.RP.bg,  color: COLORS.pos.RP.text,  border: COLORS.pos.RP.border }
+  if (p === 'C')                                    return { bg: COLORS.pos.C.bg,   color: COLORS.pos.C.text,   border: COLORS.pos.C.border }
+  if (['1B','2B','3B','SS'].includes(p))            return { bg: COLORS.pos.IF.bg,  color: COLORS.pos.IF.text,  border: COLORS.pos.IF.border }
+  if (['LF','CF','RF','OF','DH'].includes(p))       return { bg: COLORS.pos.OF.bg,  color: COLORS.pos.OF.text,  border: COLORS.pos.OF.border }
+  return { bg: COLORS.pos.DEF.bg, color: COLORS.pos.DEF.text, border: COLORS.pos.DEF.border }
+}
+
 export const MANAGERS = [
   { name: 'Adam Fromal',       slug: 'adam-fromal' },
   { name: 'Arjun Baradwaj',    slug: 'arjun-baradwaj' },
