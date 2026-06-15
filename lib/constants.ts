@@ -69,7 +69,7 @@ export const COLORS = {
   pitchers: '#166534',
   ohtani:   '#7c3aed',
   deadCap:  '#b91c1c',
-  capSpace: '#4ade80',
+  capSpace: '#f59e0b',
 
   // Cap space traffic light
   spaceGood:   '#166534',
