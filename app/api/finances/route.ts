@@ -37,15 +37,18 @@ export async function GET() {
     }
   })
 
-  const league = {
+  const totals = {
     budget:       teams.reduce((a, t) => a + t.budget, 0),
     activeSalary: teams.reduce((a, t) => a + t.activeSalary, 0),
     deadCap:      teams.reduce((a, t) => a + t.deadCap, 0),
     capSpace:     teams.reduce((a, t) => a + t.capSpace, 0),
   }
-  league.activePct = league.budget > 0 ? Math.round((league.activeSalary / league.budget) * 100) : 0
-  league.deadPct   = league.budget > 0 ? Math.round((league.deadCap      / league.budget) * 100) : 0
-  league.spacePct  = league.budget > 0 ? Math.round((league.capSpace     / league.budget) * 100) : 0
+  const league = {
+    ...totals,
+    activePct: totals.budget > 0 ? Math.round((totals.activeSalary / totals.budget) * 100) : 0,
+    deadPct:   totals.budget > 0 ? Math.round((totals.deadCap      / totals.budget) * 100) : 0,
+    spacePct:  totals.budget > 0 ? Math.round((totals.capSpace     / totals.budget) * 100) : 0,
+  }
 
   return NextResponse.json({ teams, league, year: YEAR })
 }
