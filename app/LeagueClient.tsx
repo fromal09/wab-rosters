@@ -5,7 +5,7 @@ import RosterSection from '@/components/RosterSection'
 import PlayerCard from '@/components/PlayerCard'
 import { SVC_COLORS, CURRENT_YEAR } from '@/lib/constants'
 
-type View = 'cards' | 'rosters'
+type View = 'cards' | 'rosters' | 'finances'
 
 interface TeamSummary {
   manager: { id: string; name: string; slug: string }
@@ -54,7 +54,7 @@ export default function LeagueClient({ teams, year }: { teams: TeamSummary[]; ye
           <p style={{ marginTop: 2, color: '#9ca3af', fontSize: '0.78rem' }}>Westminster Auction Baseball · 10 teams</p>
         </div>
         <div style={{ display: 'flex', background: '#fff', border: '1px solid #e4e7ec', borderRadius: 7, padding: 3, gap: 2, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-          {(['cards', 'rosters'] as View[]).map(v => (
+          {([['cards','⊞ Cards'],['rosters','☰ Rosters'],['finances','$ Finances']] as [View,string][]).map(([v,label]) => (
             <button key={v} onClick={() => setView(v)} style={{
               padding: '5px 12px', borderRadius: 5, border: 'none',
               background: view === v ? '#1a56db' : 'transparent',
@@ -62,7 +62,7 @@ export default function LeagueClient({ teams, year }: { teams: TeamSummary[]; ye
               cursor: 'pointer', fontWeight: view === v ? 700 : 500,
               fontSize: '0.78rem', transition: 'all 0.15s',
             }}>
-              {v === 'cards' ? '⊞ Cards' : '☰ Rosters'}
+              {label}
             </button>
           ))}
         </div>
@@ -180,6 +180,114 @@ export default function LeagueClient({ teams, year }: { teams: TeamSummary[]; ye
           })}
         </div>
       )}
+
+      {view === 'finances' && (() => {
+        const leagueBudget = teams.reduce((a, t) => a + t.budget, 0)
+        const leagueSalary = teams.reduce((a, t) => a + t.salary, 0)
+        const leagueDead   = teams.reduce((a, t) => a + (t.salary > t.budget ? 0 : 0), 0) // computed below per team
+        const sorted = [...teams].sort((a, b) => (b.budget - b.salary) - (a.budget - a.salary))
+
+        // Compute dead cap per team from rosters view data if loaded, else estimate from TeamSummary
+        function deadCap(t: TeamSummary): number {
+          const rd = rosters[t.manager.slug]
+          if (rd?.roster?.length) {
+            return rd.roster
+              .filter(p => p.slot_type === 'dropped')
+              .reduce((a, p) => a + (p.dead_money ?? Math.ceil(p.salary / 2)), 0)
+          }
+          return 0
+        }
+
+        const totalDead = sorted.reduce((a, t) => a + deadCap(t), 0)
+        const totalCapSpace = leagueBudget - leagueSalary
+
+        function pctBar(activePct: number, deadPct: number, spacePct: number) {
+          return (
+            <div style={{ height: 8, borderRadius: 4, overflow: 'hidden', background: '#f0f2f5', display: 'flex', width: '100%' }}>
+              <div style={{ width: `${activePct}%`, background: '#1a56db' }} />
+              <div style={{ width: `${deadPct}%`,   background: '#b91c1c' }} />
+              <div style={{ width: `${Math.max(spacePct,0)}%`, background: '#86efac' }} />
+            </div>
+          )
+        }
+
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {/* League summary */}
+            <div style={{ background: '#0f1117', borderRadius: 10, padding: '18px 22px', color: '#fff', marginBottom: 6 }}>
+              <div style={{ fontSize: '0.6rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.09em', color: '#6b7280', marginBottom: 12 }}>
+                League Total — {year}
+              </div>
+              <div style={{ display: 'flex', gap: 28, flexWrap: 'wrap', marginBottom: 14 }}>
+                {[
+                  { label: 'Total Budget',  value: `$${leagueBudget}`, color: '#fff' },
+                  { label: 'Active Salary', value: `$${leagueSalary}`, pct: Math.round(leagueSalary/leagueBudget*100), color: '#60a5fa' },
+                  { label: 'Cap Space',     value: `$${totalCapSpace}`, pct: Math.round(totalCapSpace/leagueBudget*100), color: totalCapSpace/leagueBudget > 0.1 ? '#4ade80' : '#fbbf24' },
+                  { label: 'Dead Cap',      value: `$${totalDead}`,    pct: Math.round(totalDead/leagueBudget*100),    color: '#f87171' },
+                ].map(s => (
+                  <div key={s.label}>
+                    <div style={{ fontSize: '0.58rem', color: '#6b7280', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 3 }}>{s.label}</div>
+                    <div style={{ fontSize: '1.2rem', fontWeight: 800, color: s.color }}>{s.value}</div>
+                    {'pct' in s && <div style={{ fontSize: '0.68rem', color: s.color, marginTop: 1 }}>{s.pct}% of budget</div>}
+                  </div>
+                ))}
+              </div>
+              {pctBar(
+                Math.round(leagueSalary/leagueBudget*100),
+                Math.round(totalDead/leagueBudget*100),
+                Math.round(totalCapSpace/leagueBudget*100),
+              )}
+              <div style={{ display: 'flex', gap: 14, marginTop: 7 }}>
+                {[['#3b82f6','Active'],['#ef4444','Dead Cap'],['#86efac','Cap Space']].map(([c,l]) => (
+                  <div key={l} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <div style={{ width: 8, height: 8, borderRadius: 2, background: c }} />
+                    <span style={{ fontSize: '0.62rem', color: '#9ca3af' }}>{l}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Team rows */}
+            {sorted.map((t, i) => {
+              const dead     = deadCap(t)
+              const capSpace = t.budget - t.salary
+              const activePct = Math.round(t.salary  / t.budget * 100)
+              const deadPct   = Math.round(dead      / t.budget * 100)
+              const spacePct  = Math.round(capSpace  / t.budget * 100)
+              const spaceColor = spacePct >= 15 ? '#166534' : spacePct >= 5 ? '#854d0e' : '#b91c1c'
+              const deadColor  = deadPct  >= 20 ? '#b91c1c' : deadPct  >= 10 ? '#854d0e' : '#6b7280'
+              return (
+                <div key={t.manager.id} style={{ background: '#fff', border: '1px solid #e4e7ec', borderRadius: 10, padding: '14px 18px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#9ca3af', minWidth: 16 }}>#{i+1}</span>
+                      <span style={{ fontSize: '0.95rem', fontWeight: 700, color: '#0f1117' }}>{t.manager.name}</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+                      <span style={{ fontSize: '0.58rem', color: '#9ca3af', fontWeight: 600, textTransform: 'uppercase' }}>Budget</span>
+                      <span style={{ fontSize: '1rem', fontWeight: 800, color: '#0f1117' }}>${t.budget}</span>
+                    </div>
+                  </div>
+                  <div style={{ marginBottom: 12 }}>{pctBar(activePct, deadPct, spacePct)}</div>
+                  <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap' }}>
+                    {[
+                      { label: 'Active Salary', value: `$${t.salary}`,  pct: activePct, color: '#374151' },
+                      { label: 'Cap Space',      value: `$${capSpace}`, pct: spacePct,  color: spaceColor },
+                      { label: 'Dead Cap',       value: `$${dead}`,     pct: deadPct,   color: deadColor },
+                    ].map(s => (
+                      <div key={s.label}>
+                        <div style={{ fontSize: '0.58rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: '#9ca3af', marginBottom: 2 }}>{s.label}</div>
+                        <div style={{ fontSize: '0.95rem', fontWeight: 800, color: s.color }}>{s.value}</div>
+                        <div style={{ fontSize: '0.68rem', color: s.color, fontWeight: 600 }}>{s.pct}% of budget</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )
+      })()}
     </>
   )
 }
